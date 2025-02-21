@@ -1,43 +1,40 @@
 from flask import  redirect, url_for, flash, Blueprint
 from jdatetime import timedelta
-
 from extensions import bcrypt, db
 from flask_login import login_user, logout_user, login_required, current_user
 from persiantools.jdatetime import JalaliDate
-from forms import LoginForm, ExpenseForm
+from forms import LoginForm
 from flask import render_template, request, jsonify
 from datetime import datetime
-from models import db, Expense, Category, User
+from models import db, Expense, Category, User, IncomeCategory, Income
 
 auth_bp = Blueprint('auth', __name__)
-# صفحه لاگین
-@auth_bp.route('/login', methods=['GET', 'POST'])
+
+@auth_bp.route('login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user)
-
-            return redirect(url_for('auth.dashboard'))  # هدایت به داشبورد
+            login_user(user, remember=True)  # فعال کردن کوکی Remember-Me
+            return redirect(url_for('auth.dashboard'))
         else:
             flash('ورود ناموفق. لطفاً ایمیل و پسورد را بررسی کنید.', 'danger')
     return render_template('login.html', form=form)
 
-# صفحه خروج
-@auth_bp.route('/logout')
+@auth_bp.route('logout')
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))  # هدایت به صفحه لاگین
 
 # صفحه داشبورد
-@auth_bp.route('/dashboard')
+@auth_bp.route('dashboard')
 @login_required
 def dashboard():
     categories = Category.query.all()
     return render_template('dashboard.html', categories=categories)
 
-@auth_bp.route('/add_category', methods=['POST'])
+@auth_bp.route('add_category', methods=['POST'])
 @login_required
 def add_category():
     data = request.get_json()
@@ -56,8 +53,7 @@ def add_category():
 
     return jsonify({'message': 'دسته‌بندی جدید با موفقیت ثبت شد', 'category_id': new_category.id, 'category_name': new_category.name}), 201
 
-
-@auth_bp.route('/add_expense', methods=['POST'])
+@auth_bp.route('add_expense', methods=['POST'])
 @login_required
 def add_expense():
     if request.method == 'POST':
@@ -96,12 +92,12 @@ def add_expense():
         except Exception as e:
             return jsonify({"message": "خطا در ثبت هزینه. لطفاً دوباره تلاش کنید."}), 500
 
-@auth_bp.route('/report')
+@auth_bp.route('report')
 @login_required
 def reports():
     return render_template('report.html')
 
-@auth_bp.route('/get_all_report', methods=['POST'])
+@auth_bp.route('get_all_report', methods=['POST'])
 @login_required
 def get_monthly_report():
     data = request.get_json()
@@ -131,3 +127,96 @@ def get_monthly_report():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
+
+@auth_bp.route('add_income_category', methods=['POST'])
+@login_required
+def add_income_category():
+    data = request.get_json()
+    category_name = data.get('incomeCategoryName')
+
+    if not category_name:
+        return jsonify({'error': 'نام دسته‌بندی نمی‌تواند خالی باشد'}), 400
+
+    existing_category = IncomeCategory.query.filter_by(name=category_name).first()
+    if existing_category:
+        return jsonify({'error': 'این دسته‌بندی درآمد قبلاً ثبت شده است'}), 400
+
+    new_category = IncomeCategory(name=category_name)
+    db.session.add(new_category)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'دسته‌بندی درآمد جدید با موفقیت ثبت شد',
+        'category_id': new_category.id,
+        'category_name': new_category.name
+    }), 201
+
+@auth_bp.route('add_income', methods=['POST'])
+@login_required
+def add_income():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            amount = data.get('incomeAmount')
+            category_id = data.get('incomeCategory')
+            description = data.get('incomeDescription')
+
+            # بررسی صحت داده‌ها
+            if not amount or not category_id:
+                return jsonify({"message": "تمامی فیلدها باید پر شوند!"}), 400
+
+            # اضافه کردن درآمد جدید به پایگاه داده
+            income = Income(
+                amount=amount,
+                category_id=category_id,
+                user_id=current_user.id,  # کاربری که وارد شده است
+                description=description
+            )
+            db.session.add(income)
+            db.session.commit()
+
+            # ارسال پاسخ به کاربر
+            return jsonify({
+                "message": "درآمد با موفقیت ثبت شد!",
+                "income": {
+                    "id": income.id,
+                    "amount": income.amount,
+                    "category": income.category.name,
+                    "description": income.description,
+                    "date": income.date.strftime('%Y/%m/%d')
+                }
+            })
+
+        except Exception as e:
+            return jsonify({"message": "خطا در ثبت درآمد. لطفاً دوباره تلاش کنید."}), 500
+
+@auth_bp.route('get_income_report', methods=['POST'])
+@login_required
+def get_income_report():
+    try:
+        # جلب درآمدها بر اساس دسته‌بندی
+        report_data = db.session.query(
+            IncomeCategory.name.label('category_name'),  # استفاده از IncomeCategory به جای Category
+            db.func.sum(Income.amount).label('total_amount')
+        ).join(Income).filter(
+            Income.user_id == current_user.id
+        ).group_by(IncomeCategory.id).all()
+
+        if not report_data:
+            return jsonify({"success": False, "message": "هیچ گزارشی برای درآمد این ماه موجود نیست."})
+
+        # محاسبه مجموع درآمدها
+        total_income = sum(item.total_amount for item in report_data)
+
+        # ارسال داده‌ها به کلاینت
+        income_report = [{"category_name": item.category_name, "total_amount": item.total_amount} for item in report_data]
+
+        return jsonify({
+            "success": True,
+            "income_report": income_report,
+            "total_income": total_income  # ارسال مجموع درآمدها به کلاینت
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+

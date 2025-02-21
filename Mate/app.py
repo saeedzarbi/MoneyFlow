@@ -1,22 +1,31 @@
 # app.py
 from flask import Flask
 from extensions import db, bcrypt, login_manager
+from datetime import timedelta
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS') == 'True'
 
-# Initialize extensions with app
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=3)
 db.init_app(app)
 bcrypt.init_app(app)
 login_manager.init_app(app)
+from flask_login import LoginManager
 
-# Import models and routes after initializing extensions to avoid circular imports
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "auth.login"
+login_manager.login_message = "لطفاً ابتدا وارد حساب کاربری خود شوید."
+
 from models import User
 from routes import auth_bp
 
-app.register_blueprint(auth_bp, url_prefix='/auth')
+app.register_blueprint(auth_bp, url_prefix='/')
 
 # User loader function
 @login_manager.user_loader

@@ -40,19 +40,25 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <h2>داشبورد مدیریت هزینه‌ها</h2>
-        <p>به پنل مدیریت هزینه‌های خود خوش آمدید!</p>
+<div class="dashboard-container">
+    <h2>داشبورد مدیریت مالی</h2>
+    <p>به پنل مدیریت مالی خود خوش آمدید!</p>
 
-        <!-- دکمه افزودن هزینه جدید -->
-        <button class="btn-custom" data-bs-toggle="modal" data-bs-target="#expenseModal">+ افزودن هزینه جدید</button>
+    <!-- دکمه افزودن هزینه جدید -->
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#expenseModal">+ افزودن هزینه جدید</button>
 
-        <!-- دکمه افزودن دسته‌بندی جدید -->
-        <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#categoryModal">+ افزودن دسته‌بندی جدید</button>
+    <!-- دکمه افزودن دسته‌بندی هزینه -->
+    <button class="btn btn-dark mt-3" data-bs-toggle="modal" data-bs-target="#categoryModal">+ افزودن دسته‌بندی هزینه</button>
 
-        <!-- دکمه گزارش‌ها -->
-        <a href="/auth/report" class="btn btn-warning mt-3">مشاهده گزارش‌ها</a>
-    </div>
+    <!-- دکمه افزودن درآمد جدید -->
+    <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#incomeModal">+ افزودن درآمد جدید</button>
+
+    <!-- دکمه افزودن دسته‌بندی درآمد -->
+    <button class="btn btn-info mt-3" data-bs-toggle="modal" data-bs-target="#incomeCategoryModal">+ افزودن دسته‌بندی درآمد</button>
+
+    <!-- دکمه گزارش‌ها -->
+    <a href="/report" class="btn btn-warning mt-3">مشاهده گزارش‌ها</a>
+</div>
 
     <!-- Modal -->
     <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
@@ -113,6 +119,128 @@
         </div>
     </div>
 </div>
+<!-- فرم افزودن دسته‌بندی درآمد -->
+<div class="modal fade" id="incomeCategoryModal" tabindex="-1" aria-labelledby="incomeCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="incomeCategoryModalLabel">افزودن دسته‌بندی درآمد جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="incomeCategoryForm">
+                    <div class="mb-3">
+                        <label for="incomeCategoryName" class="form-label">نام دسته‌بندی</label>
+                        <input type="text" class="form-control" id="incomeCategoryName" name="incomeCategoryName" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">ثبت دسته‌بندی</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- فرم افزودن درآمد -->
+<div class="modal fade" id="incomeModal" tabindex="-1" aria-labelledby="incomeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="incomeModalLabel">افزودن درآمد جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="incomeForm">
+                    <div class="mb-3">
+                        <label for="incomeAmount" class="form-label">مبلغ</label>
+                        <input type="number" class="form-control" id="incomeAmount" name="incomeAmount" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="incomeCategory" class="form-label">دسته‌بندی</label>
+                        <select class="form-control" id="incomeCategory" name="incomeCategory">
+                            {% for category in income_categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="incomeDescription" class="form-label">توضیحات</label>
+                        <textarea class="form-control" id="incomeDescription" name="incomeDescription"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">ثبت درآمد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // افزودن دسته‌بندی درآمد
+    $("#incomeCategoryForm").submit(function(event) {
+        event.preventDefault();
+        let incomeCategoryName = $("#incomeCategoryName").val().trim();
+        if (incomeCategoryName === "") {
+            alert("نام دسته‌بندی نمی‌تواند خالی باشد.");
+            return;
+        }
+        $.ajax({
+            url: "/add_income_category",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ incomeCategoryName: incomeCategoryName }),
+            success: function(response) {
+                alert(response.message);
+                $("#incomeCategoryModal").modal("hide");
+                $("#incomeCategoryName").val("");
+                $("#incomeCategory").append(`<option value="${response.category_id}">${response.category_name}</option>`);
+            },
+            error: function(xhr, status, error) {
+                alert("مشکلی در ثبت دسته‌بندی درآمد پیش آمده: " + xhr.responseText);
+            }
+        });
+    });
+
+    // ثبت درآمد
+    $("#incomeForm").submit(function(event) {
+        event.preventDefault();
+        let incomeAmount = $("#incomeAmount").val().trim();
+        let incomeCategory = $("#incomeCategory").val();
+        let incomeDescription = $("#incomeDescription").val().trim();
+        if (incomeAmount === "" || incomeCategory === "") {
+            alert("تمامی فیلدها باید پر شوند!");
+            return;
+        }
+        $.ajax({
+            url: "/add_income",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                incomeAmount: incomeAmount,
+                incomeCategory: incomeCategory,
+                incomeDescription: incomeDescription
+            }),
+            success: function(response) {
+                alert(response.message);
+                $("#incomeAmount").val("");
+                $("#incomeCategory").val("");
+                $("#incomeDescription").val("");
+                let newIncome = response.income;
+                let incomeRow = `<tr>
+                    <td>${newIncome.id}</td>
+                    <td>${newIncome.amount}</td>
+                    <td>${newIncome.category}</td>
+                    <td>${newIncome.description}</td>
+                    <td>${newIncome.date}</td>
+                </tr>`;
+                $("#incomeTable tbody").append(incomeRow);
+            },
+            error: function(xhr, status, error) {
+                alert("مشکلی در ثبت درآمد پیش آمده است. لطفاً دوباره تلاش کنید.");
+            }
+        });
+    });
+});
+</script>
 
     <script>
     $(document).ready(function() {
@@ -127,7 +255,7 @@
         }
 
         $.ajax({
-            url: "/auth/add_category",
+            url: "/add_category",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify({ categoryName: categoryName }),
@@ -136,7 +264,7 @@
                 $("#categoryModal").modal("hide");
                 $("#categoryName").val("");
 
-                $("#category").append(`<option value="${response.category_id}">${response.category_name}</option>`);
+                $("#category").append(<option value="${response.category_id}">${response.category_name}</option>);
             },
             error: function(xhr, status, error) {
                 console.log("Error:", xhr.responseText);
@@ -165,7 +293,7 @@
 
         // ارسال درخواست AJAX
         $.ajax({
-            url: "/auth/add_expense",
+            url: "/add_expense",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify({
@@ -182,13 +310,13 @@
 
                 // نمایش هزینه جدید در جایی که نمایش می‌دهید
                 let newExpense = response.expense;
-                let expenseRow = `<tr>
+                let expenseRow = <tr>
                     <td>${newExpense.id}</td>
                     <td>${newExpense.amount}</td>
                     <td>${newExpense.category}</td>
                     <td>${newExpense.description}</td>
                     <td>${newExpense.date}</td>
-                </tr>`;
+                </tr>;
 
                 // اضافه کردن هزینه به جدول یا لیست
                 $("#expensesTable tbody").append(expenseRow);
@@ -200,6 +328,7 @@
         });
     });
 });
+
     </script>
 
     <script>
