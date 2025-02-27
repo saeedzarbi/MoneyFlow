@@ -272,25 +272,23 @@ $(document).ready(function() {
         });
     });
 });
-    </script>
 
-    <script>
+</script>
+
+<script>
     $(document).ready(function() {
     $("#expenseForm").submit(function(event) {
-        event.preventDefault();
 
-        // دریافت داده‌ها از فرم
         let amount = $("#amount").val().trim();
         let category = $("#category").val();
         let description = $("#description").val().trim();
+        let date = $("#date").val().trim();
 
-        // بررسی صحت داده‌ها
         if (amount === "" || category === "") {
             alert("تمامی فیلدها باید پر شوند!");
             return;
         }
 
-        // ارسال درخواست AJAX
         $.ajax({
             url: "/add_expense",
             type: "POST",
@@ -298,24 +296,23 @@ $(document).ready(function() {
             data: JSON.stringify({
                 amount: amount,
                 category: category,
+                date: date,
                 description: description
             }),
             success: function(response) {
                 alert(response.message);
-                // پاک کردن مقادیر فرم بعد از ارسال موفق
                 $("#amount").val("");
                 $("#category").val("");
                 $("#description").val("");
 
-                // نمایش هزینه جدید در جایی که نمایش می‌دهید
                 let newExpense = response.expense;
-                let expenseRow = <tr>
+                let expenseRow = `<tr>
                     <td>${newExpense.id}</td>
                     <td>${newExpense.amount}</td>
                     <td>${newExpense.category}</td>
                     <td>${newExpense.description}</td>
                     <td>${newExpense.date}</td>
-                </tr>;
+                </tr>`;
 
                 // اضافه کردن هزینه به جدول یا لیست
                 $("#expensesTable tbody").append(expenseRow);
@@ -328,14 +325,14 @@ $(document).ready(function() {
     });
 });
 
-    </script>
+</script>
 
-    <script>
+<script>
         $(document).ready(function() {
             $("#date").persianDatepicker({
                 format: 'YYYY-MM-DD'
             });
         });
-    </script>
+</script>
 </body>
 </html>
