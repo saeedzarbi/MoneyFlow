@@ -7,6 +7,7 @@ from forms import LoginForm
 from flask import render_template, request, jsonify
 from datetime import datetime
 from models import db, Expense, Category, User, IncomeCategory, Income
+import jdatetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -32,7 +33,9 @@ def logout():
 @login_required
 def dashboard():
     categories = Category.query.all()
-    return render_template('dashboard.html', categories=categories)
+    income_categories = IncomeCategory.query.all()
+
+    return render_template('dashboard.html', categories=categories, income_categories=income_categories)
 
 @auth_bp.route('add_category', methods=['POST'])
 @login_required
@@ -97,32 +100,45 @@ def add_expense():
 def reports():
     return render_template('report.html')
 
-@auth_bp.route('get_all_report', methods=['POST'])
+@auth_bp.route('get_all_report', methods=['GET'])
 @login_required
 def get_monthly_report():
-    data = request.get_json()
     try:
-        # جلب هزینه‌ها بر اساس دسته‌بندی و فیلتر بر اساس ماه
+        # دریافت تاریخ امروز به شمسی
+        today_shamsi = jdatetime.date.today()
+        current_year = today_shamsi.year
+        current_month = today_shamsi.month
+
+        # تبدیل تاریخ شمسی به میلادی برای فیلتر کردن رکوردهای دیتابیس
+        start_date = jdatetime.date(current_year, current_month, 1).togregorian()
+        if current_month == 12:
+            end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
+        else:
+            end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
+
         report_data = db.session.query(
+            Category.id.label('category_id'),
             Category.name.label('category_name'),
             db.func.sum(Expense.amount).label('total_amount')
         ).join(Expense).filter(
-            Expense.user_id == current_user.id
+            Expense.user_id == current_user.id,
+            Expense.date >= start_date,
+            Expense.date < end_date
         ).group_by(Category.id).all()
 
         if not report_data:
-            return jsonify({"success": False, "message": "هیچ گزارشی برای این ماه موجود نیست."})
+            return jsonify({"success": False, "message": "هیچ گزارشی برای این ماه شمسی موجود نیست."})
 
         # محاسبه مجموع هزینه‌ها
         total_costs = sum(item.total_amount for item in report_data)
 
         # ارسال داده‌ها به کلاینت
-        report = [{"category_name": item.category_name, "total_amount": item.total_amount} for item in report_data]
+        report = [{"category_id": item.category_id,"category_name": item.category_name, "total_amount": item.total_amount} for item in report_data]
 
         return jsonify({
             "success": True,
             "report": report,
-            "total_costs": total_costs  # ارسال مجموع هزینه‌ها به کلاینت
+            "total_costs": total_costs
         })
 
     except Exception as e:
@@ -190,16 +206,30 @@ def add_income():
         except Exception as e:
             return jsonify({"message": "خطا در ثبت درآمد. لطفاً دوباره تلاش کنید."}), 500
 
-@auth_bp.route('get_income_report', methods=['POST'])
+@auth_bp.route('get_income_report', methods=['GET'])
 @login_required
 def get_income_report():
     try:
-        # جلب درآمدها بر اساس دسته‌بندی
+        # دریافت تاریخ امروز به شمسی
+        today_shamsi = jdatetime.date.today()
+        current_year = today_shamsi.year
+        current_month = today_shamsi.month
+
+        # تبدیل تاریخ شمسی به میلادی برای استفاده در فیلتر دیتابیس
+        start_date = jdatetime.date(current_year, current_month, 1).togregorian()
+        if current_month == 12:
+            end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
+        else:
+            end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
+
+        # دریافت درآمدها بر اساس دسته‌بندی و فیلتر بر اساس ماه شمسی
         report_data = db.session.query(
-            IncomeCategory.name.label('category_name'),  # استفاده از IncomeCategory به جای Category
+            IncomeCategory.name.label('category_name'),
             db.func.sum(Income.amount).label('total_amount')
         ).join(Income).filter(
-            Income.user_id == current_user.id
+            Income.user_id == current_user.id,
+            Income.date >= start_date,
+            Income.date < end_date
         ).group_by(IncomeCategory.id).all()
 
         if not report_data:
@@ -219,4 +249,48 @@ def get_income_report():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
+
+@auth_bp.route('expenses/<int:category_id>', methods=['GET'])
+@login_required
+def get_category_expenses(category_id):
+    try:
+        # دریافت تاریخ امروز به شمسی
+        today_shamsi = jdatetime.date.today()
+        current_year = today_shamsi.year
+        current_month = today_shamsi.month
+
+        # تبدیل تاریخ شمسی به میلادی
+        start_date = jdatetime.date(current_year, current_month, 1).togregorian()
+        if current_month == 12:
+            end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
+        else:
+            end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
+
+        # دریافت هزینه‌های دسته‌بندی مشخص‌شده در این ماه
+        expenses = Expense.query.filter(
+            Expense.user_id == current_user.id,
+            Expense.category_id == category_id,
+            Expense.date >= start_date,
+            Expense.date < end_date
+        ).all()
+
+        if not expenses:
+            return jsonify({"success": False, "message": "هیچ هزینه‌ای برای این دسته‌بندی در این ماه یافت نشد."})
+
+        # آماده‌سازی داده‌ها
+        expense_list = [{
+            "id": exp.id,
+            "amount": exp.amount,
+            "description": exp.description,
+            "date": jdatetime.datetime.fromgregorian(datetime=exp.date).strftime('%Y/%m/%d')  # تبدیل تاریخ میلادی به شمسی
+        } for exp in expenses]
+
+        return jsonify({
+            "success": True,
+            "expenses": expense_list
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
 
