@@ -27,19 +27,19 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=True)
-    date = db.Column(db.DateTime, nullable=False, default=datetime.now(pytz.timezone('Asia/Tehran')))
+    date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(pytz.timezone('Asia/Tehran')))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     category = db.relationship('Category', backref=db.backref('expenses', lazy=True))
     user = db.relationship('User', backref=db.backref('expenses', lazy=True))
 
-    def __init__(self, amount, category_id, user_id, description=None):
+    def __init__(self, amount, category_id, user_id, description=None, date=None):
         self.amount = amount
         self.category_id = category_id
         self.user_id = user_id
         self.description = description
-        self.date = datetime.now(pytz.timezone('Asia/Tehran'))
+        self.date = date if date else datetime.now(pytz.timezone('Asia/Tehran'))
 
     def get_persian_date(self):
         return JalaliDateTime(self.date).strftime('%Y/%m/%d')

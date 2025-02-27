@@ -1,3 +1,9 @@
+function convertPersianToEnglishNumbers(str) {
+    return str.replace(/[۰-۹]/g, function(d) {
+        return d.charCodeAt(0) - 1776;
+    });
+}
+
 $(document).ready(function() {
     $("#date").persianDatepicker({
         format: 'YYYY-MM-DD'
@@ -10,6 +16,7 @@ $(document).ready(function() {
         let category = $("#category").val();
         let description = $("#description").val().trim();
         let date = $("#date").val().trim();
+        date = convertPersianToEnglishNumbers(date);
 
         if (amount === "" || category === "") {
             alert("تمامی فیلدها باید پر شوند!");
@@ -104,7 +111,6 @@ $(document).ready(function() {
         });
     });
 
-    // ارسال درآمد جدید
     $("#incomeForm").submit(function(event) {
         event.preventDefault();
         let incomeAmount = $("#incomeAmount").val().trim();

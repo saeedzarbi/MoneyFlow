@@ -1,3 +1,4 @@
+import pytz
 from flask import  redirect, url_for, flash, Blueprint
 from jdatetime import timedelta
 from extensions import bcrypt, db
@@ -8,6 +9,9 @@ from flask import render_template, request, jsonify
 from datetime import datetime
 from models import db, Expense, Category, User, IncomeCategory, Income
 import jdatetime
+from datetime import datetime
+import pytz
+from persiantools.jdatetime import JalaliDate
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -56,6 +60,19 @@ def add_category():
 
     return jsonify({'message': 'دسته‌بندی جدید با موفقیت ثبت شد', 'category_id': new_category.id, 'category_name': new_category.name}), 201
 
+
+def convert_persian_to_gregorian(date_str):
+
+    try:
+        date_str = date_str.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+        year, month, day = map(int, date_str.split('-'))
+        gregorian_date = JalaliDate(year, month, day).to_gregorian()
+
+        return datetime(gregorian_date.year, gregorian_date.month, gregorian_date.day,
+                        tzinfo=pytz.timezone('Asia/Tehran'))
+    except ValueError:
+        return None
+
 @auth_bp.route('add_expense', methods=['POST'])
 @login_required
 def add_expense():
@@ -65,22 +82,30 @@ def add_expense():
             amount = data.get('amount')
             category_id = data.get('category')
             description = data.get('description')
+            date_str = data.get('date')
 
             # بررسی صحت داده‌ها
-            if not amount or not category_id:
+            if not amount or not category_id or not date_str:
                 return jsonify({"message": "تمامی فیلدها باید پر شوند!"}), 400
 
-            # اضافه کردن هزینه جدید به پایگاه داده
+            # تبدیل تاریخ شمسی به میلادی
+            date_obj = convert_persian_to_gregorian(date_str)
+            print(date_obj)
+            if not date_obj:
+                return jsonify({"message": "فرمت تاریخ نامعتبر است. از YYYY-MM-DD (شمسی) استفاده کنید."}), 400
+
+            # ایجاد و ذخیره هزینه
             expense = Expense(
                 amount=amount,
                 category_id=category_id,
-                user_id=current_user.id,  # کاربری که وارد شده است
-                description=description
+                user_id=current_user.id,
+                description=description,
+                date=date_obj  # ذخیره تاریخ میلادی
             )
             db.session.add(expense)
             db.session.commit()
 
-            # ارسال جواب به کاربر
+            # ارسال پاسخ به کاربر
             return jsonify({
                 "message": "هزینه با موفقیت ثبت شد!",
                 "expense": {
@@ -88,12 +113,13 @@ def add_expense():
                     "amount": expense.amount,
                     "category": expense.category.name,
                     "description": expense.description,
-                    "date": expense.date.strftime('%Y/%m/%d')
+                    "date": expense.date.strftime('%Y-%m-%d')  # نمایش تاریخ میلادی
                 }
             })
 
         except Exception as e:
             return jsonify({"message": "خطا در ثبت هزینه. لطفاً دوباره تلاش کنید."}), 500
+
 
 @auth_bp.route('report')
 @login_required
@@ -259,7 +285,6 @@ def get_category_expenses(category_id):
         current_year = today_shamsi.year
         current_month = today_shamsi.month
 
-        # تبدیل تاریخ شمسی به میلادی
         start_date = jdatetime.date(current_year, current_month, 1).togregorian()
         if current_month == 12:
             end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
@@ -277,7 +302,6 @@ def get_category_expenses(category_id):
         if not expenses:
             return jsonify({"success": False, "message": "هیچ هزینه‌ای برای این دسته‌بندی در این ماه یافت نشد."})
 
-        # آماده‌سازی داده‌ها
         expense_list = [{
             "id": exp.id,
             "amount": exp.amount,
