@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask
 from extensions import db, bcrypt, login_manager
 from datetime import timedelta
@@ -20,7 +19,7 @@ from flask_login import LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
-login_manager.login_message = "لطفاً ابتدا وارد حساب کاربری خود شوید."
+login_manager.login_message = "please-login"
 
 from models import User
 from routes import auth_bp

@@ -1,12 +1,8 @@
-import pytz
 from flask import  redirect, url_for, flash, Blueprint
-from jdatetime import timedelta
 from extensions import bcrypt, db
 from flask_login import login_user, logout_user, login_required, current_user
-from persiantools.jdatetime import JalaliDate
 from forms import LoginForm
 from flask import render_template, request, jsonify
-from datetime import datetime
 from models import db, Expense, Category, User, IncomeCategory, Income
 import jdatetime
 from datetime import datetime
@@ -84,11 +80,9 @@ def add_expense():
             description = data.get('description')
             date_str = data.get('date')
 
-            # بررسی صحت داده‌ها
             if not amount or not category_id or not date_str:
                 return jsonify({"message": "تمامی فیلدها باید پر شوند!"}), 400
 
-            # تبدیل تاریخ شمسی به میلادی
             date_obj = convert_persian_to_gregorian(date_str)
             print(date_obj)
             if not date_obj:
@@ -100,12 +94,11 @@ def add_expense():
                 category_id=category_id,
                 user_id=current_user.id,
                 description=description,
-                date=date_obj  # ذخیره تاریخ میلادی
+                date=date_obj
             )
             db.session.add(expense)
             db.session.commit()
 
-            # ارسال پاسخ به کاربر
             return jsonify({
                 "message": "هزینه با موفقیت ثبت شد!",
                 "expense": {
@@ -113,7 +106,7 @@ def add_expense():
                     "amount": expense.amount,
                     "category": expense.category.name,
                     "description": expense.description,
-                    "date": expense.date.strftime('%Y-%m-%d')  # نمایش تاریخ میلادی
+                    "date": expense.date.strftime('%Y-%m-%d')
                 }
             })
 
@@ -280,7 +273,6 @@ def get_income_report():
 @login_required
 def get_category_expenses(category_id):
     try:
-        # دریافت تاریخ امروز به شمسی
         today_shamsi = jdatetime.date.today()
         current_year = today_shamsi.year
         current_month = today_shamsi.month
@@ -291,7 +283,6 @@ def get_category_expenses(category_id):
         else:
             end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
 
-        # دریافت هزینه‌های دسته‌بندی مشخص‌شده در این ماه
         expenses = Expense.query.filter(
             Expense.user_id == current_user.id,
             Expense.category_id == category_id,
@@ -306,7 +297,7 @@ def get_category_expenses(category_id):
             "id": exp.id,
             "amount": exp.amount,
             "description": exp.description,
-            "date": jdatetime.datetime.fromgregorian(datetime=exp.date).strftime('%Y/%m/%d')  # تبدیل تاریخ میلادی به شمسی
+            "date": jdatetime.datetime.fromgregorian(datetime=exp.date).strftime('%Y/%m/%d')
         } for exp in expenses]
 
         return jsonify({

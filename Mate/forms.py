@@ -1,9 +1,7 @@
 from wtforms.validators import DataRequired, Email
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, TextAreaField, SubmitField, PasswordField
-from wtforms import StringField
 from persiantools.jdatetime import JalaliDate
-import datetime
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
