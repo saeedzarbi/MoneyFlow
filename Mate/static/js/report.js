@@ -90,10 +90,13 @@ $(document).on("click", ".details-btn", function() {
                 let detailsHtml = "";
                 response.expenses.forEach(function(exp) {
                     detailsHtml += `
-                        <tr>
+                        <tr data-id="${exp.id}">
                             <td>${exp.amount}</td>
                             <td>${exp.description || "ندارد"}</td>
                             <td>${exp.date}</td>
+                            <td>
+                                <button class="btn btn-danger delete-expense" data-id="${exp.id}">حذف</button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -107,6 +110,27 @@ $(document).on("click", ".details-btn", function() {
         },
         error: function(xhr, status, error) {
             alert("مشکلی در دریافت جزئیات هزینه پیش آمد.");
+        }
+    });
+});
+
+$(document).on("click", ".delete-expense", function() {
+    let expenseId = $(this).data("id");
+    let row = $(this).closest("tr");
+
+    if (!confirm("آیا از حذف این هزینه مطمئن هستید؟")) {
+        return;
+    }
+
+    $.ajax({
+        url: `/detail/${expenseId}`,
+        type: "DELETE",
+        success: function(response) {
+            alert(response.message);
+            row.remove(); // حذف ردیف از جدول
+        },
+        error: function(xhr) {
+            alert("خطا در حذف هزینه: " + xhr.responseJSON.message);
         }
     });
 });

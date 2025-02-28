@@ -21,7 +21,7 @@
             <h4>گزارش ماهانه</h4>
         </div>
 
-        <div class="total-costs">
+        <div class="total-costs text-center d-flex flex-column align-items-center">
             <p>مجموع هزینه‌ها: <span id="totalCosts" class="total-costs">0</span> تومان</p>
             <p>مجموع درآمدها: <span id="totalIncoms" class="total-incomes">0</span> تومان</p>
         </div>
@@ -31,7 +31,7 @@
 
         <div id="reportSection"></div>
         <!-- مدال نمایش جزئیات هزینه‌ها -->
-<!-- مدال جزئیات هزینه‌ها -->
+
 <div class="modal fade" id="expenseDetailsModal" tabindex="-1" aria-labelledby="expenseDetailsLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -46,15 +46,19 @@
                             <th>مبلغ</th>
                             <th>توضیحات</th>
                             <th>تاریخ</th>
+                            <th>حذف</th>
                         </tr>
                     </thead>
                     <tbody id="expenseDetailsBody">
                     </tbody>
                 </table>
             </div>
+            <div class="modal-footer">
+            </div>
         </div>
     </div>
 </div>
+
 
     </div>
 

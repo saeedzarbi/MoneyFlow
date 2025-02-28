@@ -308,4 +308,22 @@ def get_category_expenses(category_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
+@auth_bp.route('detail/<int:expense_id>', methods=['DELETE'])
+@login_required
+def delete_expense(expense_id):
+    try:
+        expense = Expense.query.filter_by(id=expense_id, user_id=current_user.id).first()
+
+        if not expense:
+            return jsonify({"success": False, "message": "هزینه موردنظر یافت نشد یا شما دسترسی به آن ندارید."}), 404
+
+        # حذف هزینه از دیتابیس
+        db.session.delete(expense)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "هزینه با موفقیت حذف شد."})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"خطا در حذف هزینه: {str(e)}"}), 500
 
