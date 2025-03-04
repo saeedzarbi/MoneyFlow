@@ -12,10 +12,26 @@ $(document).ready(function() {
                     let reportHtml = '<table class="table report-table costs table-bordered">';
                     reportHtml += '<thead><tr><th>دسته‌بندی</th><th>مجموع هزینه</th><th>درصد از کل</th></tr></thead><tbody>';
 
+                    // Find the highest percentage for highlighting
+                    let maxPercentage = Math.max(...response.report.map(item =>
+                        (item.total_amount / totalCosts * 100)
+                    ));
+
                     response.report.forEach(function(item) {
                         let percentage = (item.total_amount / totalCosts * 100).toFixed(2);
+                        let rowClass = '';
+
+                        // Add highlighting classes based on percentage
+                        if (percentage >= maxPercentage) {
+                            rowClass = 'highest-percentage';
+                        } else if (percentage >= 30) {
+                            rowClass = 'high-percentage';
+                        } else if (percentage >= 15) {
+                            rowClass = 'medium-percentage';
+                        }
+
                         reportHtml += `
-                            <tr class="category-row">
+                            <tr class="category-row ${rowClass}">
                                 <td class="category-name">${item.category_name}</td>
                                 <td>${item.total_amount}</td>
                                 <td class="percentage">${percentage}%</td>
@@ -27,6 +43,25 @@ $(document).ready(function() {
                     reportHtml += '</tbody></table>';
                     $("#totalCosts").text(totalCosts).addClass("total-costs");
                     $("#reportSection").html(reportHtml);
+
+                    // Add CSS styles for highlighting
+                    const styles = `
+                        <style>
+                            .highest-percentage {
+                                background-color: rgba(255, 0, 0, 0.2) !important;
+                                font-weight: bold;
+                            }
+                            .high-percentage {
+                                background-color: rgba(255, 165, 0, 0.2) !important;
+                            }
+                            .medium-percentage {
+                                background-color: rgba(255, 255, 0, 0.1) !important;
+                            }
+                        </style>
+                    `;
+                    if (!$('style:contains("highest-percentage")').length) {
+                        $('head').append(styles);
+                    }
                 } else {
                     $("#reportSection").html('<p>هیچ گزارشی موجود نیست.</p>');
                 }
