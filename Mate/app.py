@@ -3,6 +3,8 @@ from extensions import db, bcrypt, login_manager
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+from models import User
+from routes import auth_bp
 
 load_dotenv()
 app = Flask(__name__)
@@ -21,8 +23,7 @@ login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 login_manager.login_message = "please-login"
 
-from models import User
-from routes import auth_bp
+
 
 app.register_blueprint(auth_bp, url_prefix='/')
 

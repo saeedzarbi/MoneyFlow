@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Register</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
         }
-        .login-container {
+        .register-container {
             max-width: 400px;
             margin: 100px auto;
             padding: 20px;
@@ -23,11 +23,9 @@
     </style>
 </head>
 <body>
+    <div class="register-container">
+        <h3 class="text-center">Register</h3>
 
-    <div class="login-container">
-        <h3 class="text-center">ورود</h3>
-
-        <!-- نمایش پیام‌های flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -41,6 +39,10 @@
         <form method="POST">
             {{ form.hidden_tag() }}
             <div class="mb-3">
+                <label class="form-label">{{ form.username.label }}</label>
+                {{ form.username(class="form-control") }}
+            </div>
+            <div class="mb-3">
                 <label class="form-label">{{ form.email.label }}</label>
                 {{ form.email(class="form-control") }}
             </div>
@@ -48,12 +50,15 @@
                 <label class="form-label">{{ form.password.label }}</label>
                 {{ form.password(class="form-control") }}
             </div>
-            <button type="submit" class="btn btn-primary">ورود</button>
+            <div class="mb-3">
+                <label class="form-label">{{ form.confirm_password.label }}</label>
+                {{ form.confirm_password(class="form-control") }}
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
         </form>
         <div class="text-center mt-3">
-            <p> Don't have an account? <a href="{{ url_for('auth.register') }}">Sign Up</a></p>
+            <p>Have an account? <a href="{{ url_for('auth.login') }}">login</a></p>
         </div>
     </div>
-
 </body>
-</html>
+</html> 

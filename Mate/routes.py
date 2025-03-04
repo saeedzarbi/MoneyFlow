@@ -1,7 +1,7 @@
 from flask import  redirect, url_for, flash, Blueprint
 from extensions import bcrypt, db
 from flask_login import login_user, logout_user, login_required, current_user
-from forms import LoginForm
+from forms import LoginForm, RegistrationForm
 from flask import render_template, request, jsonify
 from models import db, Expense, Category, User, IncomeCategory, Income
 import jdatetime
@@ -9,9 +9,9 @@ from datetime import datetime
 import pytz
 from persiantools.jdatetime import JalaliDate
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__)  
 
-@auth_bp.route('login', methods=['GET', 'POST'])
+@auth_bp.route('/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -20,8 +20,38 @@ def login():
             login_user(user, remember=True)  # فعال کردن کوکی Remember-Me
             return redirect(url_for('auth.dashboard'))
         else:
-            flash('ورود ناموفق. لطفاً ایمیل و پسورد را بررسی کنید.', 'danger')
+            flash('login failed, please check your email and password', 'danger')
     return render_template('login.html', form=form)
+
+@auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.dashboard'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        # Check if user already exists
+        if User.query.filter_by(email=form.email.data).first():
+            flash('email already exists', 'danger')
+            return render_template('register.html', form=form)
+        
+        if User.query.filter_by(username=form.username.data).first():
+            flash('username already exists', 'danger')
+            return render_template('register.html', form=form)
+        
+        # Create new user
+        user = User(
+            username=form.username.data,
+            email=form.email.data
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        
+        flash('registration successful, please login', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('register.html', form=form)
 
 @auth_bp.route('logout')
 def logout():
@@ -44,17 +74,17 @@ def add_category():
     category_name = data.get('categoryName')
 
     if not category_name:
-        return jsonify({'error': 'نام دسته‌بندی نمی‌تواند خالی باشد'}), 400
+        return jsonify({'error': 'category name cannot be empty'}), 400
 
     existing_category = Category.query.filter_by(name=category_name).first()
     if existing_category:
-        return jsonify({'error': 'این دسته‌بندی قبلاً ثبت شده است'}), 400
+        return jsonify({'error': 'this category already exists'}), 400
 
     new_category = Category(name=category_name)
     db.session.add(new_category)
     db.session.commit()
 
-    return jsonify({'message': 'دسته‌بندی جدید با موفقیت ثبت شد', 'category_id': new_category.id, 'category_name': new_category.name}), 201
+    return jsonify({'message': 'new category added successfully', 'category_id': new_category.id, 'category_name': new_category.name}), 201
 
 
 def convert_persian_to_gregorian(date_str):
@@ -81,12 +111,12 @@ def add_expense():
             date_str = data.get('date')
 
             if not amount or not category_id or not date_str:
-                return jsonify({"message": "تمامی فیلدها باید پر شوند!"}), 400
+                return jsonify({"message": "all fields must be filled!"}), 400
 
             date_obj = convert_persian_to_gregorian(date_str)
             print(date_obj)
             if not date_obj:
-                return jsonify({"message": "فرمت تاریخ نامعتبر است. از YYYY-MM-DD (شمسی) استفاده کنید."}), 400
+                return jsonify({"message": "invalid date format. use YYYY-MM-DD (persian)"}), 400
 
             # ایجاد و ذخیره هزینه
             expense = Expense(
@@ -100,7 +130,7 @@ def add_expense():
             db.session.commit()
 
             return jsonify({
-                "message": "هزینه با موفقیت ثبت شد!",
+                "message": "expense added successfully!",
                 "expense": {
                     "id": expense.id,
                     "amount": expense.amount,
@@ -111,7 +141,7 @@ def add_expense():
             })
 
         except Exception as e:
-            return jsonify({"message": "خطا در ثبت هزینه. لطفاً دوباره تلاش کنید."}), 500
+            return jsonify({"message": "error in adding expense. please try again."}), 500
 
 
 @auth_bp.route('report')
@@ -146,12 +176,10 @@ def get_monthly_report():
         ).group_by(Category.id).all()
 
         if not report_data:
-            return jsonify({"success": False, "message": "هیچ گزارشی برای این ماه شمسی موجود نیست."})
+            return jsonify({"success": False, "message": "no report for this month."})
 
-        # محاسبه مجموع هزینه‌ها
         total_costs = sum(item.total_amount for item in report_data)
 
-        # ارسال داده‌ها به کلاینت
         report = [{"category_id": item.category_id,"category_name": item.category_name, "total_amount": item.total_amount} for item in report_data]
 
         return jsonify({
@@ -170,18 +198,18 @@ def add_income_category():
     category_name = data.get('incomeCategoryName')
 
     if not category_name:
-        return jsonify({'error': 'نام دسته‌بندی نمی‌تواند خالی باشد'}), 400
+        return jsonify({'error': 'income category name cannot be empty'}), 400
 
     existing_category = IncomeCategory.query.filter_by(name=category_name).first()
     if existing_category:
-        return jsonify({'error': 'این دسته‌بندی درآمد قبلاً ثبت شده است'}), 400
+        return jsonify({'error': 'this income category already exists'}), 400
 
     new_category = IncomeCategory(name=category_name)
     db.session.add(new_category)
     db.session.commit()
 
     return jsonify({
-        'message': 'دسته‌بندی درآمد جدید با موفقیت ثبت شد',
+        'message': 'new income category added successfully',
         'category_id': new_category.id,
         'category_name': new_category.name
     }), 201
@@ -196,23 +224,20 @@ def add_income():
             category_id = data.get('incomeCategory')
             description = data.get('incomeDescription')
 
-            # بررسی صحت داده‌ها
             if not amount or not category_id:
-                return jsonify({"message": "تمامی فیلدها باید پر شوند!"}), 400
+                return jsonify({"message": "all fields must be filled!"}), 400
 
-            # اضافه کردن درآمد جدید به پایگاه داده
             income = Income(
                 amount=amount,
                 category_id=category_id,
-                user_id=current_user.id,  # کاربری که وارد شده است
+                user_id=current_user.id, 
                 description=description
             )
             db.session.add(income)
             db.session.commit()
 
-            # ارسال پاسخ به کاربر
             return jsonify({
-                "message": "درآمد با موفقیت ثبت شد!",
+                "message": "income added successfully!",
                 "income": {
                     "id": income.id,
                     "amount": income.amount,
@@ -223,7 +248,7 @@ def add_income():
             })
 
         except Exception as e:
-            return jsonify({"message": "خطا در ثبت درآمد. لطفاً دوباره تلاش کنید."}), 500
+            return jsonify({"message": "error in adding income. please try again."}), 500
 
 @auth_bp.route('get_income_report', methods=['GET'])
 @login_required
@@ -252,7 +277,7 @@ def get_income_report():
         ).group_by(IncomeCategory.id).all()
 
         if not report_data:
-            return jsonify({"success": False, "message": "هیچ گزارشی برای درآمد این ماه موجود نیست."})
+            return jsonify({"success": False, "message": "no report for this month."})
 
         # محاسبه مجموع درآمدها
         total_income = sum(item.total_amount for item in report_data)
@@ -291,7 +316,7 @@ def get_category_expenses(category_id):
         ).all()
 
         if not expenses:
-            return jsonify({"success": False, "message": "هیچ هزینه‌ای برای این دسته‌بندی در این ماه یافت نشد."})
+            return jsonify({"success": False, "message": "no expense for this category in this month."})
 
         expense_list = [{
             "id": exp.id,
@@ -315,15 +340,15 @@ def delete_expense(expense_id):
         expense = Expense.query.filter_by(id=expense_id, user_id=current_user.id).first()
 
         if not expense:
-            return jsonify({"success": False, "message": "هزینه موردنظر یافت نشد یا شما دسترسی به آن ندارید."}), 404
+            return jsonify({"success": False, "message": "expense not found or you don't have access to it."}), 404
 
         # حذف هزینه از دیتابیس
         db.session.delete(expense)
         db.session.commit()
 
-        return jsonify({"success": True, "message": "هزینه با موفقیت حذف شد."})
+        return jsonify({"success": True, "message": "expense deleted successfully."})
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "message": f"خطا در حذف هزینه: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"error in deleting expense: {str(e)}"}), 500
 
