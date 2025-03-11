@@ -35,7 +35,7 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=True)  # فعال کردن کوکی Remember-Me
+            login_user(user, remember=True) 
             return redirect(url_for('auth.dashboard'))
         else:
             flash('login failed, please check your email and password', 'danger')
@@ -74,8 +74,7 @@ def register():
 @auth_bp.route('logout')
 def logout():
     logout_user()
-    return redirect(url_for('auth.login'))  # هدایت به صفحه لاگین
-
+    return redirect(url_for('auth.login'))  
 # صفحه داشبورد
 @auth_bp.route('dashboard')
 @login_required
@@ -167,7 +166,7 @@ def add_expense():
             })
 
         except Exception as e:
-            return jsonify({"message": "error in adding expense. please try again."}), 500
+            return jsonify({"message": str(e)}), 500
 
 
 @auth_bp.route('report')

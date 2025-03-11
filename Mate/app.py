@@ -11,6 +11,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS') == 'True'
+app.config['SLACK-HOOK'] = os.getenv('SLACK-HOOK') == 'True'
+
 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=3)
 db.init_app(app)
