@@ -151,7 +151,8 @@ def add_expense():
 
             # Send Slack notification
             persian_date = jdatetime.datetime.fromgregorian(datetime=date_obj).strftime('%Y/%m/%d')
-            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {amount:,} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            formatted_amount = "{:,.0f}".format(float(amount))
+            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
             send_slack_notification(slack_message)
 
             return jsonify({
@@ -267,7 +268,8 @@ def add_income():
 
             # Send Slack notification
             persian_date = jdatetime.datetime.fromgregorian(datetime=income.date).strftime('%Y/%m/%d')
-            slack_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {amount:,} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            formatted_amount = "{:,.0f}".format(float(amount))
+            slack_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
             send_slack_notification(slack_message)
 
             return jsonify({
