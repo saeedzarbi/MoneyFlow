@@ -194,7 +194,7 @@ function updateIncomeTable(response, totalIncome) {
 
 // Handle income details button click
 $(document).on("click", ".income-details-btn", function() {
-    let categoryId = $(this).data("category-id");
+    let categoryId = $(this).data("category_id");
 
     $.ajax({
         url: `/incomes/${categoryId}`,
