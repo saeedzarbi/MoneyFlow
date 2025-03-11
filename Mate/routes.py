@@ -320,12 +320,16 @@ def get_income_report():
         total_income = sum(item.total_amount for item in report_data)
 
         # ارسال داده‌ها به کلاینت
-        income_report = [{"category_name": item.category_name, "total_amount": item.total_amount} for item in report_data]
+        income_report = [{
+            "category_id": item.category_id,
+            "category_name": item.category_name, 
+            "total_amount": item.total_amount
+        } for item in report_data]
 
         return jsonify({
             "success": True,
             "income_report": income_report,
-            "total_income": total_income  # ارسال مجموع درآمدها به کلاینت
+            "total_income": total_income
         })
 
     except Exception as e:
