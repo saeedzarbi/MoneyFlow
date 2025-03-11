@@ -1,176 +1,340 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>داشبورد مدیریت هزینه</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker/dist/css/persian-datepicker.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
-    <script src="{{ url_for('static', filename='js/action-submit.js') }}"></script>
-
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Persian Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
     <style>
         body {
             background-color: #f8f9fa;
             font-family: 'Tahoma', sans-serif;
         }
-        .dashboard-container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
+        .dashboard-stats {
+            margin-bottom: 2rem;
         }
-        .btn-custom {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-            transition: 0.3s;
+        .card {
+            margin-bottom: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         }
-        .btn-custom:hover {
-            background-color: #0056b3;
+        .btn-icon {
+            margin-right: 0.5rem;
+        }
+        .stats-card {
+            transition: transform 0.2s;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
         }
     </style>
 </head>
 <body>
-<div class="dashboard-container">
-    <h2>داشبورد مدیریت مالی</h2>
-    <p>به پنل مدیریت مالی خود خوش آمدید!</p>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">ExpenseMate</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.dashboard') }}">داشبورد</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.reports') }}">گزارش‌ها</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.analytics') }}">تحلیل‌ها</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">خروج</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <!-- دکمه افزودن هزینه جدید -->
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#expenseModal">+ افزودن هزینه جدید</button>
+    <div class="container mt-4">
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">هزینه این ماه</h6>
+                                <h3 class="mt-2 mb-0" id="monthlyExpense">0 تومان</h3>
+                            </div>
+                            <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">درآمد این ماه</h6>
+                                <h3 class="mt-2 mb-0" id="monthlyIncome">0 تومان</h3>
+                            </div>
+                            <i class="fas fa-coins fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">تعداد تراکنش‌ها</h6>
+                                <h3 class="mt-2 mb-0" id="transactionCount">0</h3>
+                            </div>
+                            <i class="fas fa-receipt fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark stats-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">باقیمانده</h6>
+                                <h3 class="mt-2 mb-0" id="remainingBudget">0 تومان</h3>
+                            </div>
+                            <i class="fas fa-wallet fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <!-- دکمه افزودن دسته‌بندی هزینه -->
-    <button class="btn btn-dark mt-3" data-bs-toggle="modal" data-bs-target="#categoryModal">+ افزودن دسته‌بندی هزینه</button>
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-md-12 text-center">
+                <button class="btn btn-danger m-1" data-bs-toggle="modal" data-bs-target="#expenseModal">
+                    <i class="fas fa-plus-circle btn-icon"></i>افزودن هزینه جدید
+                </button>
+                <button class="btn btn-success m-1" data-bs-toggle="modal" data-bs-target="#incomeModal">
+                    <i class="fas fa-plus-circle btn-icon"></i>افزودن درآمد جدید
+                </button>
+                <button class="btn btn-dark m-1" onclick="showAddExpenseCategoryModal()">
+                    <i class="fas fa-folder-plus btn-icon"></i>افزودن دسته‌بندی هزینه
+                </button>
+                <button class="btn btn-info text-white m-1" onclick="showAddIncomeCategoryModal()">
+                    <i class="fas fa-folder-plus btn-icon"></i>افزودن دسته‌بندی درآمد
+                </button>
+            </div>
+        </div>
 
-    <!-- دکمه افزودن درآمد جدید -->
-    <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#incomeModal">+ افزودن درآمد جدید</button>
+        <!-- Recent Transactions -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">تراکنش‌های اخیر</h5>
+                <button class="btn btn-outline-light btn-sm" onclick="loadRecentTransactions()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>تاریخ</th>
+                                <th>نوع</th>
+                                <th>دسته‌بندی</th>
+                                <th>مبلغ</th>
+                                <th>توضیحات</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTransactions">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-    <!-- دکمه افزودن دسته‌بندی درآمد -->
-    <button class="btn btn-info mt-3" data-bs-toggle="modal" data-bs-target="#incomeCategoryModal">+ افزودن دسته‌بندی درآمد</button>
+        <!-- Category Management -->
+        <div class="row">
+            <!-- Expense Categories -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">دسته‌بندی‌های هزینه</h5>
+                        <button class="btn btn-outline-light btn-sm" onclick="showAddExpenseCategoryModal()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="expenseCategories" class="d-flex flex-wrap gap-2">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <!-- دکمه گزارش‌ها -->
-    <a href="/report" class="btn btn-warning mt-3">مشاهده گزارش‌ها</a>
-</div>
+            <!-- Income Categories -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">دسته‌بندی‌های درآمد</h5>
+                        <button class="btn btn-outline-light btn-sm" onclick="showAddIncomeCategoryModal()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="incomeCategories" class="d-flex flex-wrap gap-2">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
+    <!-- Expense Modal -->
+    <div class="modal fade" id="expenseModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="expenseModalLabel">افزودن هزینه جدید</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">افزودن هزینه جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="expenseForm">
                         <div class="mb-3">
-                            <label for="amount" class="form-label">مبلغ</label>
-                            <input type="number" class="form-control" id="amount" name="amount" required>
+                            <label for="amount" class="form-label">مبلغ (تومان)</label>
+                            <input type="number" class="form-control" id="amount" required>
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">دسته‌بندی</label>
-                                <select class="form-control" id="category" name="category">
-                                    {% for category in categories %}
-                                        <option value="{{ category.id }}">{{ category.name }}</option>
-                                    {% endfor %}
-                                </select>
-
+                            <select class="form-select" id="category" required>
+                                <option value="">انتخاب کنید</option>
+                            </select>
                         </div>
                         <div class="mb-3">
-                            <label for="date" class="form-label">تاریخ</label>
-                            <input type="text" class="form-control" id="date" name="date">
+                            <label for="expenseDate" class="form-label">تاریخ</label>
+                            <input type="text" class="form-control" id="expenseDate" required>
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label">توضیحات</label>
-                            <textarea class="form-control" id="description" name="description"></textarea>
+                            <textarea class="form-control" id="description" rows="2"></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">ثبت هزینه</button>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            ثبت هزینه
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Income Modal -->
+    <div class="modal fade" id="incomeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">افزودن درآمد جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="incomeForm">
+                        <div class="mb-3">
+                            <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
+                            <input type="number" class="form-control" id="incomeAmount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="incomeCategory" class="form-label">دسته‌بندی</label>
+                            <select class="form-select" id="incomeCategory" required>
+                                <option value="">انتخاب کنید</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="incomeDate" class="form-label">تاریخ</label>
+                            <input type="text" class="form-control" id="incomeDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="incomeDescription" class="form-label">توضیحات</label>
+                            <textarea class="form-control" id="incomeDescription" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            ثبت درآمد
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<!-- Modal برای افزودن دسته‌بندی جدید -->
-<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="categoryModalLabel">افزودن دسته‌بندی جدید</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="categoryForm">
-                    <div class="mb-3">
-                        <label for="categoryName" class="form-label">نام دسته‌بندی</label>
-                        <input type="text" class="form-control" id="categoryName" name="categoryName" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">ثبت دسته‌بندی</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- فرم افزودن دسته‌بندی درآمد -->
-<div class="modal fade" id="incomeCategoryModal" tabindex="-1" aria-labelledby="incomeCategoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="incomeCategoryModalLabel">افزودن دسته‌بندی درآمد جدید</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="incomeCategoryForm">
-                    <div class="mb-3">
-                        <label for="incomeCategoryName" class="form-label">نام دسته‌بندی</label>
-                        <input type="text" class="form-control" id="incomeCategoryName" name="incomeCategoryName" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">ثبت دسته‌بندی</button>
-                </form>
+    <!-- Add Category Modals -->
+    <div class="modal fade" id="addExpenseCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">افزودن دسته‌بندی هزینه</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addExpenseCategoryForm">
+                        <div class="mb-3">
+                            <label for="categoryName" class="form-label">نام دسته‌بندی</label>
+                            <input type="text" class="form-control" id="categoryName" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            ثبت دسته‌بندی
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- فرم افزودن درآمد -->
-<div class="modal fade" id="incomeModal" tabindex="-1" aria-labelledby="incomeModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="incomeModalLabel">افزودن درآمد جدید</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="incomeForm">
-                    <div class="mb-3">
-                        <label for="incomeAmount" class="form-label">مبلغ</label>
-                        <input type="number" class="form-control" id="incomeAmount" name="incomeAmount" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="incomeCategory" class="form-label">دسته‌بندی</label>
-                        <select class="form-control" id="incomeCategory" name="incomeCategory">
-                            {% for category in income_categories %}
-                                <option value="{{ category.id }}">{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="incomeDescription" class="form-label">توضیحات</label>
-                        <textarea class="form-control" id="incomeDescription" name="incomeDescription"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">ثبت درآمد</button>
-                </form>
+    <div class="modal fade" id="addIncomeCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">افزودن دسته‌بندی درآمد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addIncomeCategoryForm">
+                        <div class="mb-3">
+                            <label for="incomeCategoryName" class="form-label">نام دسته‌بندی</label>
+                            <input type="text" class="form-control" id="incomeCategoryName" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            ثبت دسته‌بندی
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <script src="{{ url_for('static', filename='js/action-submit.js') }}"></script>
 </body>
 </html>

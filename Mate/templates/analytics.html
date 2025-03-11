@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">تحلیل مالی</h2>
+
+    <!-- Filter Controls -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="yearSelect">سال شمسی:</label>
+                    <select class="form-control" id="yearSelect">
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="monthSelect">ماه:</label>
+                    <select class="form-control" id="monthSelect">
+                        <option value="1">فروردین</option>
+                        <option value="2">اردیبهشت</option>
+                        <option value="3">خرداد</option>
+                        <option value="4">تیر</option>
+                        <option value="5">مرداد</option>
+                        <option value="6">شهریور</option>
+                        <option value="7">مهر</option>
+                        <option value="8">آبان</option>
+                        <option value="9">آذر</option>
+                        <option value="10">دی</option>
+                        <option value="11">بهمن</option>
+                        <option value="12">اسفند</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary mt-4" onclick="loadAnalysis()">نمایش تحلیل</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">کل درآمد</h5>
+                    <h3 class="card-text" id="totalIncome">0 تومان</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">کل هزینه</h5>
+                    <h3 class="card-text" id="totalExpense">0 تومان</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">پس‌انداز</h5>
+                    <h3 class="card-text" id="netSavings">0 تومان</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">درصد پس‌انداز</h5>
+                    <h3 class="card-text" id="savingsPercentage">0%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">نمودار هزینه‌ها</h5>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                    <div class="mt-3" id="expenseBreakdown">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">نمودار درآمدها</h5>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="incomeChart"></canvas>
+                    </div>
+                    <div class="mt-3" id="incomeBreakdown">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Expenses Chart -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">هزینه‌های روزانه</h5>
+            <div class="chart-container" style="position: relative; height:300px;">
+                <canvas id="dailyExpenseChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yearly Summary -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">خلاصه سالانه</h5>
+            <div class="chart-container" style="position: relative; height:400px;">
+                <canvas id="yearlyChart"></canvas>
+            </div>
+            <div class="mt-4" id="yearlyTotals">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jalali-moment/dist/jalali-moment.browser.js"></script>
+
+<script>
+    // Initialize charts
+    let expenseChart, incomeChart, dailyExpenseChart, yearlyChart;
+
+    // Populate year select
+    function populateYearSelect() {
+        const currentYear = moment().jYear();
+        const yearSelect = document.getElementById('yearSelect');
+        for (let year = currentYear - 5; year <= currentYear; year++) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === currentYear) {
+                option.selected = true;
+            }
+            yearSelect.appendChild(option);
+        }
+    }
+
+    // Format numbers with commas and currency
+    function formatCurrency(num) {
+        return num.toLocaleString('fa-IR') + ' تومان';
+    }
+
+    // Format percentage
+    function formatPercentage(num) {
+        return num.toLocaleString('fa-IR', { maximumFractionDigits: 1 }) + '%';
+    }
+
+    // Load analysis data
+    async function loadAnalysis() {
+        const year = document.getElementById('yearSelect').value;
+        const month = document.getElementById('monthSelect').value;
+
+        try {
+            const response = await fetch(`/get_monthly_analysis?year=${year}&month=${month}`);
+            const data = await response.json();
+
+            if (data.success) {
+                updateSummaryCards(data.analysis);
+                updateCharts(data.analysis);
+                updateBreakdowns(data.analysis);
+                await loadYearlySummary(year);
+            }
+        } catch (error) {
+            console.error('Error loading analysis:', error);
+        }
+    }
+
+    // Load yearly summary
+    async function loadYearlySummary(year) {
+        try {
+            const response = await fetch(`/get_yearly_summary?year=${year}`);
+            const data = await response.json();
+
+            if (data.success) {
+                updateYearlyChart(data.yearly_summary);
+                updateYearlyTotals(data.yearly_totals);
+            }
+        } catch (error) {
+            console.error('Error loading yearly summary:', error);
+        }
+    }
+
+    // Update summary cards
+    function updateSummaryCards(analysis) {
+        document.getElementById('totalIncome').textContent = formatCurrency(analysis.total_income);
+        document.getElementById('totalExpense').textContent = formatCurrency(analysis.total_expense);
+        document.getElementById('netSavings').textContent = formatCurrency(analysis.net_savings);
+        document.getElementById('savingsPercentage').textContent = formatPercentage(analysis.savings_percentage);
+    }
+
+    // Update category breakdowns
+    function updateBreakdowns(analysis) {
+        // Expense breakdown
+        const expenseBreakdown = document.getElementById('expenseBreakdown');
+        expenseBreakdown.innerHTML = '<h6>جزئیات هزینه‌ها:</h6>';
+        analysis.expense_breakdown.forEach(item => {
+            expenseBreakdown.innerHTML += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>${item.category}</span>
+                    <span>${formatCurrency(item.amount)} (${formatPercentage(item.percentage)})</span>
+                </div>
+            `;
+        });
+
+        // Income breakdown
+        const incomeBreakdown = document.getElementById('incomeBreakdown');
+        incomeBreakdown.innerHTML = '<h6>جزئیات درآمدها:</h6>';
+        analysis.income_breakdown.forEach(item => {
+            incomeBreakdown.innerHTML += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>${item.category}</span>
+                    <span>${formatCurrency(item.amount)} (${formatPercentage(item.percentage)})</span>
+                </div>
+            `;
+        });
+    }
+
+    // Update yearly totals
+    function updateYearlyTotals(totals) {
+        const yearlyTotals = document.getElementById('yearlyTotals');
+        yearlyTotals.innerHTML = `
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h6>کل درآمد سالانه</h6>
+                    <strong>${formatCurrency(totals.total_income)}</strong>
+                </div>
+                <div class="col-md-4">
+                    <h6>کل هزینه سالانه</h6>
+                    <strong>${formatCurrency(totals.total_expense)}</strong>
+                </div>
+                <div class="col-md-4">
+                    <h6>پس‌انداز سالانه</h6>
+                    <strong>${formatCurrency(totals.net_savings)}</strong>
+                </div>
+            </div>
+        `;
+    }
+
+    // Update charts
+    function updateCharts(analysis) {
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    rtl: true
+                }
+            }
+        };
+
+        // Expense Chart
+        const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+        if (expenseChart) {
+            expenseChart.destroy();
+        }
+        expenseChart = new Chart(expenseCtx, {
+            type: 'doughnut',
+            data: {
+                labels: analysis.expense_breakdown.map(item => item.category),
+                datasets: [{
+                    data: analysis.expense_breakdown.map(item => item.amount),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                        '#9966FF', '#FF9F40', '#FF6384', '#36A2EB'
+                    ]
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Income Chart
+        const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+        if (incomeChart) {
+            incomeChart.destroy();
+        }
+        incomeChart = new Chart(incomeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: analysis.income_breakdown.map(item => item.category),
+                datasets: [{
+                    data: analysis.income_breakdown.map(item => item.amount),
+                    backgroundColor: [
+                        '#4BC0C0', '#FF9F40', '#9966FF', '#FF6384',
+                        '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40'
+                    ]
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Daily Expenses Chart
+        const dailyCtx = document.getElementById('dailyExpenseChart').getContext('2d');
+        if (dailyExpenseChart) {
+            dailyExpenseChart.destroy();
+        }
+        dailyExpenseChart = new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: analysis.daily_expenses.map(item => item.date),
+                datasets: [{
+                    label: 'هزینه روزانه',
+                    data: analysis.daily_expenses.map(item => item.amount),
+                    borderColor: '#FF6384',
+                    fill: false,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update yearly chart
+    function updateYearlyChart(yearlyData) {
+        const ctx = document.getElementById('yearlyChart').getContext('2d');
+        if (yearlyChart) {
+            yearlyChart.destroy();
+        }
+        yearlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: yearlyData.map(item => item.month_name),
+                datasets: [{
+                    label: 'درآمد',
+                    data: yearlyData.map(item => item.total_income),
+                    backgroundColor: '#4BC0C0'
+                }, {
+                    label: 'هزینه',
+                    data: yearlyData.map(item => item.total_expense),
+                    backgroundColor: '#FF6384'
+                }, {
+                    label: 'پس‌انداز',
+                    data: yearlyData.map(item => item.net_savings),
+                    backgroundColor: '#FFCE56',
+                    type: 'line',
+                    fill: false,
+                    borderColor: '#FFCE56'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+        populateYearSelect();
+        loadAnalysis();
+    });
+</script>
+{% endblock %}
