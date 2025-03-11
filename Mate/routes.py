@@ -352,3 +352,60 @@ def delete_expense(expense_id):
         db.session.rollback()
         return jsonify({"success": False, "message": f"error in deleting expense: {str(e)}"}), 500
 
+@auth_bp.route('incomes/<int:category_id>', methods=['GET'])
+@login_required
+def get_category_incomes(category_id):
+    try:
+        today_shamsi = jdatetime.date.today()
+        current_year = today_shamsi.year
+        current_month = today_shamsi.month
+
+        start_date = jdatetime.date(current_year, current_month, 1).togregorian()
+        if current_month == 12:
+            end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
+        else:
+            end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
+
+        incomes = Income.query.filter(
+            Income.user_id == current_user.id,
+            Income.category_id == category_id,
+            Income.date >= start_date,
+            Income.date < end_date
+        ).all()
+
+        if not incomes:
+            return jsonify({"success": False, "message": "no income for this category in this month."})
+
+        income_list = [{
+            "id": inc.id,
+            "amount": inc.amount,
+            "description": inc.description,
+            "date": jdatetime.datetime.fromgregorian(datetime=inc.date).strftime('%Y/%m/%d')
+        } for inc in incomes]
+
+        return jsonify({
+            "success": True,
+            "incomes": income_list
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@auth_bp.route('income-detail/<int:income_id>', methods=['DELETE'])
+@login_required
+def delete_income(income_id):
+    try:
+        income = Income.query.filter_by(id=income_id, user_id=current_user.id).first()
+
+        if not income:
+            return jsonify({"success": False, "message": "income not found or you don't have access to it."}), 404
+
+        db.session.delete(income)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "income deleted successfully."})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"error in deleting income: {str(e)}"}), 500
+

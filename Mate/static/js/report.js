@@ -87,7 +87,7 @@ $(document).ready(function() {
                 if (response.success) {
                     let totalIncome = response.total_income;
                     let incomeHtml = '<table class="table report-table income table-bordered">';
-                    incomeHtml += '<thead><tr><th>دسته‌بندی</th><th>مجموع درآمد</th><th>درصد از کل</th></tr></thead><tbody>';
+                    incomeHtml += '<thead><tr><th>دسته‌بندی</th><th>مجموع درآمد</th><th>درصد از کل</th><th>عملیات</th></tr></thead><tbody>';
 
                     response.income_report.forEach(function(item) {
                         let percentage = (item.total_amount / totalIncome * 100).toFixed(2);
@@ -96,6 +96,7 @@ $(document).ready(function() {
                                 <td class="category-name">${item.category_name}</td>
                                 <td>${item.total_amount}</td>
                                 <td class="percentage">${percentage}%</td>
+                                <td><button class="btn btn-info btn-sm income-details-btn" data-category-id="${item.category_id}">جزئیات</button></td>
                             </tr>
                         `;
                     });
@@ -166,6 +167,86 @@ $(document).on("click", ".delete-expense", function() {
         },
         error: function(xhr) {
             alert("خطا در حذف هزینه: " + xhr.responseJSON.message);
+        }
+    });
+});
+
+// Add details button to income rows
+function updateIncomeTable(response, totalIncome) {
+    let incomeHtml = '<table class="table report-table income table-bordered">';
+    incomeHtml += '<thead><tr><th>دسته‌بندی</th><th>مجموع درآمد</th><th>درصد از کل</th><th>عملیات</th></tr></thead><tbody>';
+
+    response.income_report.forEach(function(item) {
+        let percentage = (item.total_amount / totalIncome * 100).toFixed(2);
+        incomeHtml += `
+            <tr class="category-row">
+                <td class="category-name">${item.category_name}</td>
+                <td>${item.total_amount}</td>
+                <td class="percentage">${percentage}%</td>
+                <td><button class="btn btn-info btn-sm income-details-btn" data-category-id="${item.category_id}">جزئیات</button></td>
+            </tr>
+        `;
+    });
+
+    incomeHtml += '</tbody></table>';
+    return incomeHtml;
+}
+
+// Handle income details button click
+$(document).on("click", ".income-details-btn", function() {
+    let categoryId = $(this).data("category-id");
+
+    $.ajax({
+        url: `/incomes/${categoryId}`,
+        type: "GET",
+        contentType: "application/json",
+        success: function(response) {
+            if (response.success) {
+                let detailsHtml = "";
+                response.incomes.forEach(function(inc) {
+                    detailsHtml += `
+                        <tr data-id="${inc.id}">
+                            <td>${inc.amount}</td>
+                            <td>${inc.description || "ندارد"}</td>
+                            <td>${inc.date}</td>
+                            <td>
+                                <button class="btn btn-danger delete-income" data-id="${inc.id}">حذف</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                $("#incomeDetailsBody").html(detailsHtml);
+                let modal = new bootstrap.Modal(document.getElementById("incomeDetailsModal"));
+                modal.show();
+            } else {
+                alert(response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert("مشکلی در دریافت جزئیات درآمد پیش آمد.");
+        }
+    });
+});
+
+// Handle income deletion
+$(document).on("click", ".delete-income", function() {
+    let incomeId = $(this).data("id");
+    let row = $(this).closest("tr");
+
+    if (!confirm("آیا از حذف این درآمد مطمئن هستید؟")) {
+        return;
+    }
+
+    $.ajax({
+        url: `/income-detail/${incomeId}`,
+        type: "DELETE",
+        success: function(response) {
+            alert(response.message);
+            row.remove(); // حذف ردیف از جدول
+        },
+        error: function(xhr) {
+            alert("خطا در حذف درآمد: " + xhr.responseJSON.message);
         }
     });
 });
