@@ -103,7 +103,6 @@ def add_category():
 
     return jsonify({'message': 'new category added successfully', 'category_id': new_category.id, 'category_name': new_category.name}), 201
 
-
 def convert_persian_to_gregorian(date_str):
 
     try:
@@ -149,10 +148,45 @@ def add_expense():
             db.session.add(expense)
             db.session.commit()
 
+            # Calculate monthly and daily expenses
+            today_shamsi = jdatetime.date.today()
+            current_year = today_shamsi.year
+            current_month = today_shamsi.month
+
+            # Monthly start and end dates
+            month_start = jdatetime.date(current_year, current_month, 1).togregorian()
+            if current_month == 12:
+                month_end = jdatetime.date(current_year + 1, 1, 1).togregorian()
+            else:
+                month_end = jdatetime.date(current_year, current_month + 1, 1).togregorian()
+
+            # Today's start and end dates
+            today_start = jdatetime.date(current_year, current_month, today_shamsi.day).togregorian()
+            today_end = jdatetime.date(current_year, current_month, today_shamsi.day + 1).togregorian()
+
+            # Calculate monthly total
+            monthly_expenses = Expense.query.filter(
+                Expense.user_id == current_user.id,
+                Expense.date >= month_start,
+                Expense.date < month_end
+            ).all()
+            monthly_total = sum(exp.amount for exp in monthly_expenses)
+
+            # Calculate today's total
+            today_expenses = Expense.query.filter(
+                Expense.user_id == current_user.id,
+                Expense.date >= today_start,
+                Expense.date < today_end
+            ).all()
+            today_total = sum(exp.amount for exp in today_expenses)
+
             # Send Slack notification
             persian_date = jdatetime.datetime.fromgregorian(datetime=date_obj).strftime('%Y/%m/%d')
             formatted_amount = "{:,.0f}".format(float(amount))
-            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            formatted_monthly = "{:,.0f}".format(float(monthly_total))
+            formatted_daily = "{:,.0f}".format(float(today_total))
+            
+            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}\n\n📊 خلاصه هزینه‌ها:\n📅 امروز: {formatted_daily} تومان\n📅 این ماه: {formatted_monthly} تومان"
             send_slack_notification(slack_message)
 
             return jsonify({

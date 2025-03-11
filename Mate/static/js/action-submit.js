@@ -86,7 +86,6 @@ $(document).ready(function() {
         });
     });
 
-    // ارسال دسته‌بندی درآمد جدید
     $("#incomeCategoryForm").submit(function(event) {
         event.preventDefault();
         let incomeCategoryName = $("#incomeCategoryName").val().trim();

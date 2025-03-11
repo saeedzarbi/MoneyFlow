@@ -93,6 +93,7 @@ $(document).ready(function() {
                         let percentage = (item.total_amount / totalIncome * 100).toFixed(2);
                         incomeHtml += `
                             <tr class="category-row">
+                                <td class="category-id">${item.category_id}</td>
                                 <td class="category-name">${item.category_name}</td>
                                 <td>${item.total_amount}</td>
                                 <td class="percentage">${percentage}%</td>
@@ -163,7 +164,7 @@ $(document).on("click", ".delete-expense", function() {
         type: "DELETE",
         success: function(response) {
             alert(response.message);
-            row.remove(); 
+            row.remove();
         },
         error: function(xhr) {
             alert("خطا در حذف هزینه: " + xhr.responseJSON.message);
@@ -194,7 +195,8 @@ function updateIncomeTable(response, totalIncome) {
 
 // Handle income details button click
 $(document).on("click", ".income-details-btn", function() {
-    let categoryId = $(this).data("category_id");
+    console.log($(this).data());
+    let categoryId = $(this).data("categoryId");
 
     $.ajax({
         url: `/incomes/${categoryId}`,
@@ -243,7 +245,7 @@ $(document).on("click", ".delete-income", function() {
         type: "DELETE",
         success: function(response) {
             alert(response.message);
-            row.remove(); 
+            row.remove();
         },
         error: function(xhr) {
             alert("خطا در حذف درآمد: " + xhr.responseJSON.message);
