@@ -163,7 +163,7 @@ $(document).on("click", ".delete-expense", function() {
         type: "DELETE",
         success: function(response) {
             alert(response.message);
-            row.remove(); // حذف ردیف از جدول
+            row.remove(); 
         },
         error: function(xhr) {
             alert("خطا در حذف هزینه: " + xhr.responseJSON.message);
@@ -243,7 +243,7 @@ $(document).on("click", ".delete-income", function() {
         type: "DELETE",
         success: function(response) {
             alert(response.message);
-            row.remove(); // حذف ردیف از جدول
+            row.remove(); 
         },
         error: function(xhr) {
             alert("خطا در حذف درآمد: " + xhr.responseJSON.message);

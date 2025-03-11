@@ -8,6 +8,24 @@ import jdatetime
 from datetime import datetime
 import pytz
 from persiantools.jdatetime import JalaliDate
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SLACK_WEBHOOK_URL = os.getenv('SLACK-HOOK')
+
+def send_slack_notification(message):
+    try:
+        payload = {
+            "text": message
+        }
+        response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error sending Slack notification: {str(e)}")
+        return False
 
 auth_bp = Blueprint('auth', __name__)  
 
@@ -114,9 +132,12 @@ def add_expense():
                 return jsonify({"message": "all fields must be filled!"}), 400
 
             date_obj = convert_persian_to_gregorian(date_str)
-            print(date_obj)
             if not date_obj:
                 return jsonify({"message": "invalid date format. use YYYY-MM-DD (persian)"}), 400
+
+            category = Category.query.get(category_id)
+            if not category:
+                return jsonify({"message": "category not found"}), 404
 
             # ایجاد و ذخیره هزینه
             expense = Expense(
@@ -128,6 +149,11 @@ def add_expense():
             )
             db.session.add(expense)
             db.session.commit()
+
+            # Send Slack notification
+            persian_date = jdatetime.datetime.fromgregorian(datetime=date_obj).strftime('%Y/%m/%d')
+            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {amount:,} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            send_slack_notification(slack_message)
 
             return jsonify({
                 "message": "expense added successfully!",
@@ -227,6 +253,10 @@ def add_income():
             if not amount or not category_id:
                 return jsonify({"message": "all fields must be filled!"}), 400
 
+            category = IncomeCategory.query.get(category_id)
+            if not category:
+                return jsonify({"message": "category not found"}), 404
+
             income = Income(
                 amount=amount,
                 category_id=category_id,
@@ -235,6 +265,11 @@ def add_income():
             )
             db.session.add(income)
             db.session.commit()
+
+            # Send Slack notification
+            persian_date = jdatetime.datetime.fromgregorian(datetime=income.date).strftime('%Y/%m/%d')
+            slack_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {amount:,} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            send_slack_notification(slack_message)
 
             return jsonify({
                 "message": "income added successfully!",
@@ -269,6 +304,7 @@ def get_income_report():
         # دریافت درآمدها بر اساس دسته‌بندی و فیلتر بر اساس ماه شمسی
         report_data = db.session.query(
             IncomeCategory.name.label('category_name'),
+            IncomeCategory.id.label('category_id'),
             db.func.sum(Income.amount).label('total_amount')
         ).join(Income).filter(
             Income.user_id == current_user.id,
