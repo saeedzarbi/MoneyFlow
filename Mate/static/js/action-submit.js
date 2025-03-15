@@ -10,35 +10,26 @@ function formatCurrency(amount) {
 }
 
 $(document).ready(function() {
-    // Initialize Persian Date Picker
-    $("#expenseDate, #incomeDate").pDatepicker({
+    // Initialize date pickers
+    $("#expenseDate, #incomeDate").persianDatepicker({
         format: 'YYYY-MM-DD',
-        initialValue: false,
-        autoClose: true,
-        calendar: {
-            persian: {
-                locale: 'fa'
-            }
-        }
+        initialValue: false
     });
 
-    // Load initial data
+    // Load categories on page load
     loadCategories();
+    loadIncomeCategories();
     loadRecentTransactions();
-    updateDashboardStats();
 
-    // Expense form submission
     $("#expenseForm").submit(function(event) {
         event.preventDefault();
-
-        let amount = $("#amount").val().trim();
+        let amount = unformatNumber($("#amount").val());
         let category = $("#category").val();
-        let description = $("#description").val().trim();
-        let date = $("#expenseDate").val().trim();
-        date = convertPersianToEnglishNumbers(date);
+        let description = $("#description").val();
+        let date = $("#expenseDate").val();
 
-        if (amount === "" || category === "" || !date) {
-            alert("تمامی فیلدها باید پر شوند!");
+        if (!amount || !category || !date) {
+            alert("لطفاً همه فیلدها را پر کنید!");
             return;
         }
 
@@ -49,61 +40,57 @@ $(document).ready(function() {
             data: JSON.stringify({
                 amount: amount,
                 category: category,
-                date: date,
-                description: description
+                description: description,
+                date: date
             }),
             success: function(response) {
                 alert(response.message);
-                $("#expenseModal").modal('hide');
                 $("#amount").val("");
                 $("#category").val("");
                 $("#description").val("");
                 $("#expenseDate").val("");
+                $('#expenseModal').modal('hide');
                 loadRecentTransactions();
-                updateDashboardStats();
             },
-            error: function(xhr, status, error) {
-                console.log("Error:", error);
-                alert("مشکلی در ثبت هزینه پیش آمده است. لطفاً دوباره تلاش کنید.");
+            error: function(xhr) {
+                alert("خطا در ثبت هزینه: " + xhr.responseJSON.message);
             }
         });
     });
 
-    // Income form submission
     $("#incomeForm").submit(function(event) {
         event.preventDefault();
-        let incomeAmount = $("#incomeAmount").val().trim();
-        let incomeCategory = $("#incomeCategory").val();
-        let incomeDescription = $("#incomeDescription").val().trim();
-        let incomeDate = $("#incomeDate").val().trim();
-        incomeDate = convertPersianToEnglishNumbers(incomeDate);
+        let amount = unformatNumber($("#incomeAmount").val());
+        let category = $("#incomeCategory").val();
+        let description = $("#incomeDescription").val();
+        let date = $("#incomeDate").val();
 
-        if (incomeAmount === "" || incomeCategory === "" || !incomeDate) {
-            alert("تمامی فیلدها باید پر شوند!");
+        if (!amount || !category || !date) {
+            alert("لطفاً همه فیلدها را پر کنید!");
             return;
         }
+
         $.ajax({
             url: "/add_income",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify({
-                incomeAmount: incomeAmount,
-                incomeCategory: incomeCategory,
-                incomeDescription: incomeDescription,
-                date: incomeDate
+                incomeAmount: amount,
+                incomeCategory: category,
+                incomeDescription: description,
+                date: date
             }),
             success: function(response) {
                 alert(response.message);
-                $("#incomeModal").modal('hide');
                 $("#incomeAmount").val("");
                 $("#incomeCategory").val("");
                 $("#incomeDescription").val("");
                 $("#incomeDate").val("");
+                $('#incomeModal').modal('hide');
                 loadRecentTransactions();
-                updateDashboardStats();
             },
-            error: function(xhr, status, error) {
-                alert("مشکلی در ثبت درآمد پیش آمده است. لطفاً دوباره تلاش کنید.");
+            error: function(xhr) {
+                alert("خطا در ثبت درآمد: " + xhr.responseJSON.message);
             }
         });
     });
@@ -189,98 +176,124 @@ function updateDashboardStats() {
 
 // Load categories
 function loadCategories() {
-    // Load expense categories
-    fetch('/get_categories')
-        .then(response => response.json())
-        .then(data => {
-            const expenseSelect = document.getElementById('category');
-            const expenseCategoriesDiv = document.getElementById('expenseCategories');
+    $.ajax({
+        url: "/get_categories",
+        type: "GET",
+        success: function(response) {
+            if (response.success) {
+                let categorySelect = $("#category");
+                categorySelect.empty();
+                categorySelect.append('<option value="">انتخاب کنید</option>');
+                response.categories.forEach(function(category) {
+                    categorySelect.append(`<option value="${category.id}">${category.name}</option>`);
+                });
+            }
+        }
+    });
+}
 
-            expenseSelect.innerHTML = '<option value="">انتخاب کنید</option>';
-            expenseCategoriesDiv.innerHTML = '';
-
-            data.categories.forEach(category => {
-                expenseSelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-                expenseCategoriesDiv.innerHTML += `
-                    <span class="badge bg-primary p-2">
-                        ${category.name}
-                    </span>
-                `;
-            });
-        });
-
-    // Load income categories
-    fetch('/get_income_categories')
-        .then(response => response.json())
-        .then(data => {
-            const incomeSelect = document.getElementById('incomeCategory');
-            const incomeCategoriesDiv = document.getElementById('incomeCategories');
-
-            incomeSelect.innerHTML = '<option value="">انتخاب کنید</option>';
-            incomeCategoriesDiv.innerHTML = '';
-
-            data.categories.forEach(category => {
-                incomeSelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-                incomeCategoriesDiv.innerHTML += `
-                    <span class="badge bg-success p-2">
-                        ${category.name}
-                    </span>
-                `;
-            });
-        });
+function loadIncomeCategories() {
+    $.ajax({
+        url: "/get_income_categories",
+        type: "GET",
+        success: function(response) {
+            if (response.success) {
+                let categorySelect = $("#incomeCategory");
+                categorySelect.empty();
+                categorySelect.append('<option value="">انتخاب کنید</option>');
+                response.categories.forEach(function(category) {
+                    categorySelect.append(`<option value="${category.id}">${category.name}</option>`);
+                });
+            }
+        }
+    });
 }
 
 // Load recent transactions
 function loadRecentTransactions() {
-    const tbody = document.getElementById('recentTransactions');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center">در حال بارگذاری...</td></tr>';
+    // Load recent expenses
+    $.ajax({
+        url: "/get_recent_expenses",
+        type: "GET",
+        success: function(expenses) {
+            let transactionsHtml = "";
+            expenses.forEach(function(expense) {
+                transactionsHtml += `
+                    <tr>
+                        <td>${expense.date}</td>
+                        <td><span class="badge bg-danger">هزینه</span></td>
+                        <td>${expense.category}</td>
+                        <td>${formatNumber(expense.amount)} تومان</td>
+                        <td>${expense.description || "-"}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteExpense(${expense.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            $("#recentTransactions").html(transactionsHtml);
+        }
+    });
 
-    Promise.all([
-            fetch('/get_recent_expenses').then(res => res.json()),
-            fetch('/get_recent_incomes').then(res => res.json())
-        ])
-        .then(([expenses, incomes]) => {
-            const transactions = [
-                ...expenses.map(e => ({...e, type: 'expense' })),
-                ...incomes.map(i => ({...i, type: 'income' }))
-            ].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            tbody.innerHTML = transactions.map(t => `
-            <tr>
-                <td>${t.date}</td>
-                <td>
-                    <span class="badge ${t.type === 'expense' ? 'bg-danger' : 'bg-success'}">
-                        ${t.type === 'expense' ? 'هزینه' : 'درآمد'}
-                    </span>
-                </td>
-                <td>${t.category}</td>
-                <td>${formatCurrency(t.amount)}</td>
-                <td>${t.description || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction('${t.type}', ${t.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        });
+    // Load recent incomes
+    $.ajax({
+        url: "/get_recent_incomes",
+        type: "GET",
+        success: function(incomes) {
+            let transactionsHtml = $("#recentTransactions").html();
+            incomes.forEach(function(income) {
+                transactionsHtml += `
+                    <tr>
+                        <td>${income.date}</td>
+                        <td><span class="badge bg-success">درآمد</span></td>
+                        <td>${income.category}</td>
+                        <td>${formatNumber(income.amount)} تومان</td>
+                        <td>${income.description || "-"}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteIncome(${income.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            $("#recentTransactions").html(transactionsHtml);
+        }
+    });
 }
 
-// Delete transaction
-function deleteTransaction(type, id) {
-    if (!confirm('آیا از حذف این تراکنش اطمینان دارید؟')) return;
-
-    const endpoint = type === 'expense' ? `/detail/${id}` : `/income-detail/${id}`;
-
-    fetch(endpoint, { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+function deleteExpense(expenseId) {
+    if (confirm("آیا از حذف این هزینه مطمئن هستید؟")) {
+        $.ajax({
+            url: `/detail/${expenseId}`,
+            type: "DELETE",
+            success: function(response) {
+                alert(response.message);
                 loadRecentTransactions();
-                updateDashboardStats();
+            },
+            error: function(xhr) {
+                alert("خطا در حذف هزینه: " + xhr.responseJSON.message);
             }
-        })
-        .catch(error => console.error('Error:', error));
+        });
+    }
+}
+
+function deleteIncome(incomeId) {
+    if (confirm("آیا از حذف این درآمد مطمئن هستید؟")) {
+        $.ajax({
+            url: `/income-detail/${incomeId}`,
+            type: "DELETE",
+            success: function(response) {
+                alert(response.message);
+                loadRecentTransactions();
+            },
+            error: function(xhr) {
+                alert("خطا در حذف درآمد: " + xhr.responseJSON.message);
+            }
+        });
+    }
 }
 
 // Show modal functions
