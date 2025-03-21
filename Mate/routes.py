@@ -85,12 +85,12 @@ def register():
     
     return render_template('register.html', form=form)
 
-@auth_bp.route('logout')
+@auth_bp.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))  
 # صفحه داشبورد
-@auth_bp.route('dashboard')
+@auth_bp.route('/dashboard')
 @login_required
 def dashboard():
     categories = Category.query.all()
@@ -98,7 +98,7 @@ def dashboard():
 
     return render_template('dashboard.html', categories=categories, income_categories=income_categories)
 
-@auth_bp.route('add_category', methods=['POST'])
+@auth_bp.route('/add_category', methods=['POST'])
 @login_required
 def add_category():
     try:
@@ -128,7 +128,7 @@ def add_category():
             return jsonify({'error': 'این دسته‌بندی قبلاً ثبت شده است'}), 400
         return jsonify({'error': 'خطا در ثبت دسته‌بندی'}), 500
 
-@auth_bp.route('add_expense', methods=['POST'])
+@auth_bp.route('/add_expense', methods=['POST'])
 @login_required
 def add_expense():
     if request.method == 'POST':
@@ -217,12 +217,12 @@ def add_expense():
             return jsonify({"message": str(e)}), 500
 
 
-@auth_bp.route('report')
+@auth_bp.route('/report')
 @login_required
 def reports():
     return render_template('report.html')
 
-@auth_bp.route('get_all_report', methods=['GET'])
+@auth_bp.route('/get_all_report', methods=['GET'])
 @login_required
 def get_monthly_report():
     try:
@@ -264,7 +264,7 @@ def get_monthly_report():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('add_income_category', methods=['POST'])
+@auth_bp.route('/add_income_category', methods=['POST'])
 @login_required
 def add_income_category():
     try:
@@ -294,7 +294,7 @@ def add_income_category():
             return jsonify({'error': 'این دسته‌بندی قبلاً ثبت شده است'}), 400
         return jsonify({'error': 'خطا در ثبت دسته‌بندی'}), 500
 
-@auth_bp.route('add_income', methods=['POST'])
+@auth_bp.route('/add_income', methods=['POST'])
 @login_required
 def add_income():
     if request.method == 'POST':
@@ -346,7 +346,7 @@ def add_income():
         except Exception as e:
             return jsonify({"message": "error in adding income. please try again."}), 500
 
-@auth_bp.route('get_income_report', methods=['GET'])
+@auth_bp.route('/get_income_report', methods=['GET'])
 @login_required
 def get_income_report():
     try:
@@ -395,7 +395,7 @@ def get_income_report():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('expenses/<int:category_id>', methods=['GET'])
+@auth_bp.route('/expenses/<int:category_id>', methods=['GET'])
 @login_required
 def get_category_expenses(category_id):
     try:
@@ -434,7 +434,7 @@ def get_category_expenses(category_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('detail/<int:expense_id>', methods=['DELETE'])
+@auth_bp.route('/detail/<int:expense_id>', methods=['DELETE'])
 @login_required
 def delete_expense(expense_id):
     try:
@@ -453,7 +453,7 @@ def delete_expense(expense_id):
         db.session.rollback()
         return jsonify({"success": False, "message": f"error in deleting expense: {str(e)}"}), 500
 
-@auth_bp.route('incomes/<int:category_id>', methods=['GET'])
+@auth_bp.route('/incomes/<int:category_id>', methods=['GET'])
 @login_required
 def get_category_incomes(category_id):
     try:
@@ -492,7 +492,7 @@ def get_category_incomes(category_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('income-detail/<int:income_id>', methods=['DELETE'])
+@auth_bp.route('/income-detail/<int:income_id>', methods=['DELETE'])
 @login_required
 def delete_income(income_id):
     try:
@@ -510,12 +510,12 @@ def delete_income(income_id):
         db.session.rollback()
         return jsonify({"success": False, "message": f"error in deleting income: {str(e)}"}), 500
 
-@auth_bp.route('analytics')
+@auth_bp.route('/analytics')
 @login_required
 def analytics():
     return render_template('analytics.html')
 
-@auth_bp.route('get_monthly_analysis', methods=['GET'])
+@auth_bp.route('/get_monthly_analysis', methods=['GET'])
 @login_required
 def get_monthly_analysis():
     try:
@@ -611,7 +611,7 @@ def get_monthly_analysis():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('get_yearly_summary', methods=['GET'])
+@auth_bp.route('/get_yearly_summary', methods=['GET'])
 @login_required
 def get_yearly_summary():
     try:
@@ -673,7 +673,7 @@ def get_yearly_summary():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('get_categories', methods=['GET'])
+@auth_bp.route('/get_categories', methods=['GET'])
 @login_required
 def get_categories():
     try:
@@ -685,7 +685,7 @@ def get_categories():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('get_income_categories', methods=['GET'])
+@auth_bp.route('/get_income_categories', methods=['GET'])
 @login_required
 def get_income_categories():
     try:
@@ -697,7 +697,7 @@ def get_income_categories():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('get_recent_expenses', methods=['GET'])
+@auth_bp.route('/get_recent_expenses', methods=['GET'])
 @login_required
 def get_recent_expenses():
     try:
@@ -722,7 +722,7 @@ def get_recent_expenses():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('get_recent_incomes', methods=['GET'])
+@auth_bp.route('/get_recent_incomes', methods=['GET'])
 @login_required
 def get_recent_incomes():
     try:

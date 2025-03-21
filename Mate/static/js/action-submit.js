@@ -9,6 +9,16 @@ function formatCurrency(amount) {
     return amount.toLocaleString('fa-IR') + ' تومان';
 }
 
+// Format number with commas
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// Unformat number (remove commas)
+function unformatNumber(num) {
+    return num.replace(/,/g, '');
+}
+
 $(document).ready(function() {
     // Initialize date pickers
     $("#expenseDate, #incomeDate").persianDatepicker({
@@ -35,6 +45,9 @@ $(document).ready(function() {
             alert("تمامی فیلدها باید پر شوند!");
             return;
         }
+
+        // Remove commas from amount before sending
+        amount = unformatNumber(amount);
 
         $.ajax({
             url: "/add_expense",
@@ -76,6 +89,10 @@ $(document).ready(function() {
             alert("تمامی فیلدها باید پر شوند!");
             return;
         }
+
+        // Remove commas from amount before sending
+        incomeAmount = unformatNumber(incomeAmount);
+
         $.ajax({
             url: "/add_income",
             type: "POST",
@@ -97,6 +114,7 @@ $(document).ready(function() {
                 updateDashboardStats();
             },
             error: function(xhr, status, error) {
+                console.log("Error:", error);
                 alert("مشکلی در ثبت درآمد پیش آمده است. لطفاً دوباره تلاش کنید.");
             }
         });
