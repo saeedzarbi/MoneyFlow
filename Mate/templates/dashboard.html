@@ -34,6 +34,25 @@
         .stats-card:hover {
             transform: translateY(-5px);
         }
+        .category-badge {
+            position: relative;
+            padding-right: 25px !important;
+        }
+        .delete-category {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 0 5px;
+            font-size: 1.2em;
+        }
+        .delete-category:hover {
+            color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -219,7 +238,7 @@
                     <form id="expenseForm">
                         <div class="mb-3">
                             <label for="amount" class="form-label">مبلغ (تومان)</label>
-                            <input type="number" class="form-control" id="amount" required>
+                            <input type="text" class="form-control" id="amount" required>
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">دسته‌بندی</label>
@@ -257,7 +276,7 @@
                     <form id="incomeForm">
                         <div class="mb-3">
                             <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
-                            <input type="number" class="form-control" id="incomeAmount" required>
+                            <input type="text" class="form-control" id="incomeAmount" required>
                         </div>
                         <div class="mb-3">
                             <label for="incomeCategory" class="form-label">دسته‌بندی</label>
@@ -340,7 +359,7 @@
     <script>
         // Format amount inputs on input
         $('#amount, #incomeAmount').on('input', function() {
-            let value = unformatNumber(this.value);
+            let value = this.value.replace(/,/g, '');
             if (value) {
                 this.value = formatNumber(value);
             }
@@ -349,12 +368,113 @@
         // Before form submission, unformat the numbers
         $('#expenseForm').on('submit', function() {
             let amountInput = $('#amount');
-            amountInput.val(unformatNumber(amountInput.val()));
+            amountInput.val(amountInput.val().replace(/,/g, ''));
         });
 
         $('#incomeForm').on('submit', function() {
             let amountInput = $('#incomeAmount');
-            amountInput.val(unformatNumber(amountInput.val()));
+            amountInput.val(amountInput.val().replace(/,/g, ''));
+        });
+
+        // Helper function to format numbers with commas
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Function to create category badge with delete button
+        function createCategoryBadge(category, type) {
+            const badge = document.createElement('span');
+            badge.className = `badge bg-${type === 'expense' ? 'primary' : 'success'} category-badge m-1`;
+            badge.textContent = category.name;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-category';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.title = 'حذف دسته‌بندی';
+            deleteBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (confirm(`آیا از حذف دسته‌بندی "${category.name}" اطمینان دارید؟`)) {
+                    deleteCategory(category.id, type);
+                }
+            };
+            
+            badge.appendChild(deleteBtn);
+            return badge;
+        }
+
+        // Function to delete category
+        function deleteCategory(categoryId, type) {
+            const url = type === 'expense' ? '/delete_expense_category' : '/delete_income_category';
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: JSON.stringify({ category_id: categoryId }),
+                contentType: 'application/json',
+                success: function(response) {
+                    if (response.success) {
+                        // Remove the category badge from the UI
+                        const container = document.getElementById(`${type}Categories`);
+                        const badges = container.getElementsByClassName('category-badge');
+                        for (let badge of badges) {
+                            if (badge.textContent.includes(categoryId)) {
+                                badge.remove();
+                                break;
+                            }
+                        }
+                        // Refresh the category select in the form
+                        loadCategories();
+                    } else {
+                        alert('خطا در حذف دسته‌بندی: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('خطا در ارتباط با سرور');
+                }
+            });
+        }
+
+        // Modify your existing loadCategories function to use the new createCategoryBadge function
+        function loadCategories() {
+            // Load expense categories
+            $.get('/get_categories', function(response) {
+                if (response.success) {
+                    const container = document.getElementById('expenseCategories');
+                    container.innerHTML = '';
+                    response.categories.forEach(category => {
+                        container.appendChild(createCategoryBadge(category, 'expense'));
+                    });
+                    
+                    // Update expense category select
+                    const select = document.getElementById('category');
+                    select.innerHTML = '<option value="">انتخاب کنید</option>';
+                    response.categories.forEach(category => {
+                        select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                    });
+                }
+            });
+
+            // Load income categories
+            $.get('/get_income_categories', function(response) {
+                if (response.success) {
+                    const container = document.getElementById('incomeCategories');
+                    container.innerHTML = '';
+                    response.categories.forEach(category => {
+                        container.appendChild(createCategoryBadge(category, 'income'));
+                    });
+                    
+                    // Update income category select
+                    const select = document.getElementById('incomeCategory');
+                    select.innerHTML = '<option value="">انتخاب کنید</option>';
+                    response.categories.forEach(category => {
+                        select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                    });
+                }
+            });
+        }
+
+        // Call loadCategories when the page loads
+        $(document).ready(function() {
+            loadCategories();
         });
     </script>
 </body>

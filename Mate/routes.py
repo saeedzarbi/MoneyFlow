@@ -76,9 +76,9 @@ def register():
             username=form.username.data,
             email=form.email.data
         )
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
+        # user.set_password(form.password.data)
+        # db.session.add(user)
+        # db.session.commit()
         
         flash('registration successful, please login', 'success')
         return redirect(url_for('auth.login'))
@@ -746,4 +746,70 @@ def get_recent_incomes():
         return jsonify(income_list)
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+@auth_bp.route('/delete_expense_category', methods=['POST'])
+@login_required
+def delete_expense_category():
+    try:
+        data = request.get_json()
+        category_id = data.get('category_id')
+
+        if not category_id:
+            return jsonify({'success': False, 'message': 'شناسه دسته‌بندی الزامی است'}), 400
+
+        # بررسی وجود دسته‌بندی
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'success': False, 'message': 'دسته‌بندی یافت نشد'}), 404
+
+        # بررسی وجود هزینه‌های مرتبط
+        expenses = Expense.query.filter_by(category_id=category_id).first()
+        if expenses:
+            return jsonify({'success': False, 'message': 'این دسته‌بندی دارای هزینه است و نمی‌توان آن را حذف کرد'}), 400
+
+        # حذف دسته‌بندی
+        db.session.delete(category)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'دسته‌بندی با موفقیت حذف شد'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'خطا در حذف دسته‌بندی: {str(e)}'}), 500
+
+@auth_bp.route('/delete_income_category', methods=['POST'])
+@login_required
+def delete_income_category():
+    try:
+        data = request.get_json()
+        category_id = data.get('category_id')
+
+        if not category_id:
+            return jsonify({'success': False, 'message': 'شناسه دسته‌بندی الزامی است'}), 400
+
+        # بررسی وجود دسته‌بندی
+        category = IncomeCategory.query.get(category_id)
+        if not category:
+            return jsonify({'success': False, 'message': 'دسته‌بندی یافت نشد'}), 404
+
+        # بررسی وجود درآمدهای مرتبط
+        incomes = Income.query.filter_by(category_id=category_id).first()
+        if incomes:
+            return jsonify({'success': False, 'message': 'این دسته‌بندی دارای درآمد است و نمی‌توان آن را حذف کرد'}), 400
+
+        # حذف دسته‌بندی
+        db.session.delete(category)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'دسته‌بندی با موفقیت حذف شد'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'خطا در حذف دسته‌بندی: {str(e)}'}), 500
 
