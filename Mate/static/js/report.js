@@ -261,12 +261,14 @@ document.addEventListener('DOMContentLoaded', function() {
         'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
     ];
 
+    // تنظیم اولیه صفحه
     function initializePage() {
         loadCategories();
         setupYearSelect();
         setupEventListeners();
     }
 
+    // بارگذاری دسته‌بندی‌ها
     function loadCategories() {
         const categorySelect = document.getElementById('categorySelect');
         categorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
@@ -299,15 +301,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // تنظیم سال‌ها
     function setupYearSelect() {
         const yearSelect = document.getElementById('yearSelect');
-        const currentYear = new Date().toLocaleDateString('fa-IR', { year: 'numeric' });
-        const startYear = 1400; // می‌توانید این مقدار را تغییر دهید
-        const endYear = parseInt(currentYear);
+
+        // تبدیل تاریخ میلادی به شمسی
+        const today = new Date();
+        const persianDate = new Intl.DateTimeFormat('fa-IR', {
+            year: 'numeric'
+        }).format(today);
+
+        // تبدیل عدد فارسی به انگلیسی
+        const currentYear = parseInt(persianDate.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
 
         yearSelect.innerHTML = '<option value="">انتخاب کنید</option>';
-        for (let year = endYear; year >= startYear; year--) {
+
+        // اضافه کردن 3 سال اخیر
+        for (let year = currentYear; year >= currentYear - 2; year--) {
             const option = document.createElement('option');
             option.value = year;
-            option.textContent = year;
+            // تبدیل عدد به فارسی برای نمایش
+            option.textContent = new Intl.NumberFormat('fa-IR').format(year);
             yearSelect.appendChild(option);
         }
     }
