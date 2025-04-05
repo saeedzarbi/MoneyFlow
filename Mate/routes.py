@@ -5,8 +5,7 @@ from forms import LoginForm, RegistrationForm
 from flask import render_template, request, jsonify
 from models import db, Expense, Category, User, IncomeCategory, Income
 import jdatetime
-from datetime import datetime, timedelta
-import pytz
+from datetime import timedelta
 from persiantools.jdatetime import JalaliDate
 import requests
 import os
@@ -89,7 +88,7 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))  
-# صفحه داشبورد
+
 @auth_bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -326,7 +325,6 @@ def add_income():
             db.session.add(income)
             db.session.commit()
 
-            # Send Slack notification
             persian_date = jdatetime.datetime.fromgregorian(datetime=income.date).strftime('%Y/%m/%d')
             formatted_amount = "{:,.0f}".format(float(amount))
             slack_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
@@ -350,19 +348,16 @@ def add_income():
 @login_required
 def get_income_report():
     try:
-        # دریافت تاریخ امروز به شمسی
         today_shamsi = jdatetime.date.today()
         current_year = today_shamsi.year
         current_month = today_shamsi.month
 
-        # تبدیل تاریخ شمسی به میلادی برای استفاده در فیلتر دیتابیس
         start_date = jdatetime.date(current_year, current_month, 1).togregorian()
         if current_month == 12:
             end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
         else:
             end_date = jdatetime.date(current_year, current_month + 1, 1).togregorian()
 
-        # دریافت درآمدها بر اساس دسته‌بندی و فیلتر بر اساس ماه شمسی
         report_data = db.session.query(
             IncomeCategory.name.label('category_name'),
             IncomeCategory.id.label('category_id'),
@@ -376,10 +371,8 @@ def get_income_report():
         if not report_data:
             return jsonify({"success": False, "message": "no report for this month."})
 
-        # محاسبه مجموع درآمدها
         total_income = sum(item.total_amount for item in report_data)
 
-        # ارسال داده‌ها به کلاینت
         income_report = [{
             "category_id": item.category_id,
             "category_name": item.category_name, 
@@ -443,7 +436,6 @@ def delete_expense(expense_id):
         if not expense:
             return jsonify({"success": False, "message": "expense not found or you don't have access to it."}), 404
 
-        # حذف هزینه از دیتابیس
         db.session.delete(expense)
         db.session.commit()
 
@@ -701,7 +693,6 @@ def get_income_categories():
 @login_required
 def get_recent_expenses():
     try:
-        # Get the last 10 expenses
         expenses = Expense.query.filter_by(user_id=current_user.id)\
             .order_by(Expense.date.desc())\
             .limit(10)\
@@ -726,7 +717,6 @@ def get_recent_expenses():
 @login_required
 def get_recent_incomes():
     try:
-        # Get the last 10 incomes
         incomes = Income.query.filter_by(user_id=current_user.id)\
             .order_by(Income.date.desc())\
             .limit(10)\
@@ -757,17 +747,14 @@ def delete_expense_category():
         if not category_id:
             return jsonify({'success': False, 'message': 'شناسه دسته‌بندی الزامی است'}), 400
 
-        # بررسی وجود دسته‌بندی
         category = Category.query.get(category_id)
         if not category:
             return jsonify({'success': False, 'message': 'دسته‌بندی یافت نشد'}), 404
 
-        # بررسی وجود هزینه‌های مرتبط
         expenses = Expense.query.filter_by(category_id=category_id).first()
         if expenses:
             return jsonify({'success': False, 'message': 'این دسته‌بندی دارای هزینه است و نمی‌توان آن را حذف کرد'}), 400
 
-        # حذف دسته‌بندی
         db.session.delete(category)
         db.session.commit()
 
@@ -790,17 +777,14 @@ def delete_income_category():
         if not category_id:
             return jsonify({'success': False, 'message': 'شناسه دسته‌بندی الزامی است'}), 400
 
-        # بررسی وجود دسته‌بندی
         category = IncomeCategory.query.get(category_id)
         if not category:
             return jsonify({'success': False, 'message': 'دسته‌بندی یافت نشد'}), 404
 
-        # بررسی وجود درآمدهای مرتبط
         incomes = Income.query.filter_by(category_id=category_id).first()
         if incomes:
             return jsonify({'success': False, 'message': 'این دسته‌بندی دارای درآمد است و نمی‌توان آن را حذف کرد'}), 400
 
-        # حذف دسته‌بندی
         db.session.delete(category)
         db.session.commit()
 
@@ -812,4 +796,67 @@ def delete_income_category():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'خطا در حذف دسته‌بندی: {str(e)}'}), 500
+
+@auth_bp.route('/category_expenses_summary', methods=['GET'])
+@login_required
+def get_category_expenses_summary():
+    try:
+        category_id = request.args.get('category_id', type=int)
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        if not category_id:
+            return jsonify({"success": False, "message": "category_id is required"}), 400
+
+        start_date = convert_persian_to_gregorian(start_date_str) if start_date_str else None
+        end_date = convert_persian_to_gregorian(end_date_str) if end_date_str else None
+
+        query = Expense.query.filter(
+            Expense.user_id == current_user.id,
+            Expense.category_id == category_id
+        )
+
+        if start_date:
+            query = query.filter(Expense.date >= start_date)
+        if end_date:
+            query = query.filter(Expense.date <= end_date)
+
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({"success": False, "message": "category not found"}), 404
+
+        expenses = query.all()
+
+        total_amount = sum(expense.amount for expense in expenses)
+        
+        formatted_start_date = jdatetime.datetime.fromgregorian(datetime=start_date).strftime('%Y/%m/%d') if start_date else None
+        formatted_end_date = jdatetime.datetime.fromgregorian(datetime=end_date).strftime('%Y/%m/%d') if end_date else None
+
+        response = {
+            "success": True,
+            "category_id": category_id,
+            "category_name": category.name,
+            "total_amount": total_amount,
+            "expense_count": len(expenses),
+            "date_range": {
+                "start_date": formatted_start_date,
+                "end_date": formatted_end_date
+            },
+            "expenses": [{
+                "id": exp.id,
+                "amount": exp.amount,
+                "description": exp.description,
+                "date": jdatetime.datetime.fromgregorian(datetime=exp.date).strftime('%Y/%m/%d')
+            } for exp in expenses]
+        }
+
+        return jsonify(response)
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@auth_bp.route('/category_expenses')
+@login_required
+def category_expenses_page():
+    return render_template('category_expenses.html')
 

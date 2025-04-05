@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}جستجوی هزینه‌ها{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .result-card {
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    .result-card:hover {
+        transform: translateY(-5px);
+    }
+    .stats-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .date-input {
+        font-family: 'Vazir', sans-serif;
+    }
+    .btn-search {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        border: none;
+        padding: 0.5rem 2rem;
+    }
+    .btn-search:hover {
+        background: linear-gradient(135deg, #0a58ca 0%, #084298 100%);
+    }
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+    .loading i {
+        font-size: 2rem;
+        color: #0d6efd;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-search me-2"></i>
+                جستجوی هزینه‌ها بر اساس دسته‌بندی
+            </h2>
+        </div>
+    </div>
+    
+    <!-- فرم جستجو -->
+    <div class="card search-card mb-4">
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="category" class="form-label">
+                        <i class="fas fa-folder me-1"></i>
+                        دسته‌بندی
+                    </label>
+                    <select class="form-select" id="category" required>
+                        <option value="">انتخاب کنید</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        تاریخ شروع
+                    </label>
+                    <input type="text" class="form-control date-input" id="startDate" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        تاریخ پایان
+                    </label>
+                    <input type="text" class="form-control date-input" id="endDate" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary btn-search">
+                        <i class="fas fa-search me-2"></i>
+                        جستجو
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div class="loading" id="loading">
+        <i class="fas fa-spinner"></i>
+        <p class="mt-2">در حال جستجو...</p>
+    </div>
+
+    <!-- نتایج جستجو -->
+    <div id="results" class="card result-card" style="display: none;">
+        <div class="card-body">
+            <h3 class="card-title mb-4 text-center">
+                <i class="fas fa-chart-pie me-2"></i>
+                نتایج جستجو
+            </h3>
+            
+            <!-- خلاصه نتایج -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">
+                                <i class="fas fa-folder me-2"></i>
+                                دسته‌بندی
+                            </h5>
+                            <p class="card-text h4" id="categoryName">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">
+                                <i class="fas fa-list me-2"></i>
+                                تعداد هزینه‌ها
+                            </h5>
+                            <p class="card-text h4" id="expenseCount">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                مجموع هزینه‌ها
+                            </h5>
+                            <p class="card-text h4" id="totalAmount">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول هزینه‌ها -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>تاریخ</th>
+                            <th>مبلغ</th>
+                            <th>توضیحات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // دریافت لیست دسته‌بندی‌ها
+    fetch('/get_categories')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const categorySelect = document.getElementById('category');
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+            }
+        });
+
+    // مدیریت فرم جستجو
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const categoryId = document.getElementById('category').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // نمایش loading
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+
+        // ساخت URL با پارامترها
+        let url = `/category_expenses_summary?category_id=${categoryId}`;
+        if (startDate) url += `&start_date=${startDate}`;
+        if (endDate) url += `&end_date=${endDate}`;
+
+        // ارسال درخواست
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // مخفی کردن loading
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    alert(data.message || 'خطا در دریافت اطلاعات');
+                }
+            })
+            .catch(error => {
+                // مخفی کردن loading
+                document.getElementById('loading').style.display = 'none';
+                console.error('Error:', error);
+                alert('خطا در ارتباط با سرور');
+            });
+    });
+
+    // نمایش نتایج
+    function displayResults(data) {
+        // نمایش بخش نتایج
+        document.getElementById('results').style.display = 'block';
+
+        // پر کردن اطلاعات خلاصه
+        document.getElementById('categoryName').textContent = data.category_name;
+        document.getElementById('expenseCount').textContent = data.expense_count;
+        document.getElementById('totalAmount').textContent = new Intl.NumberFormat('fa-IR').format(data.total_amount) + ' تومان';
+
+        // پر کردن جدول هزینه‌ها
+        const tbody = document.getElementById('expensesTable');
+        tbody.innerHTML = '';
+        
+        data.expenses.forEach(expense => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${expense.date}</td>
+                <td>${new Intl.NumberFormat('fa-IR').format(expense.amount)} تومان</td>
+                <td>${expense.description || '-'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+});
+</script>
+{% endblock %} 
