@@ -317,8 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let year = currentYear; year >= currentYear - 2; year--) {
             const option = document.createElement('option');
             option.value = year;
-            // تبدیل عدد به فارسی برای نمایش
-            option.textContent = new Intl.NumberFormat('fa-IR').format(year);
+            // تبدیل عدد به فارسی برای نمایش بدون جداکننده
+            const persianYear = year.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹' [d]);
+            option.textContent = persianYear;
             yearSelect.appendChild(option);
         }
     }
