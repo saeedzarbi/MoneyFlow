@@ -3,6 +3,8 @@
 {% block title %}جستجوی هزینه‌ها{% endblock %}
 
 {% block extra_css %}
+<!-- Persian Date Picker CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
     .search-card {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -31,6 +33,11 @@
     }
     .date-input {
         font-family: 'Vazir', sans-serif;
+        cursor: pointer;
+        background-color: #fff;
+    }
+    .date-input:read-only {
+        background-color: #f8f9fa;
     }
     .btn-search {
         background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
@@ -176,22 +183,70 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Persian Date Picker Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // دریافت لیست دسته‌بندی‌ها
-    fetch('/get_categories')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const categorySelect = document.getElementById('category');
-                data.categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    categorySelect.appendChild(option);
-                });
-            }
-        });
+    const categorySelect = document.getElementById('category');
+    
+    // تنظیمات تقویم شمسی
+    const datePickerOptions = {
+        format: 'YYYY-MM-DD',
+        initialValue: false,
+        autoClose: true,
+        timePicker: {
+            enabled: false
+        },
+        onSelect: function(unix) {
+            // تبدیل تاریخ میلادی به شمسی
+            const date = new Date(unix);
+            const persianDate = new persianDate(date);
+            return persianDate.format('YYYY-MM-DD');
+        }
+    };
+
+    // فعال‌سازی تقویم برای فیلدهای تاریخ
+    $('#startDate').persianDatepicker(datePickerOptions);
+    $('#endDate').persianDatepicker(datePickerOptions);
+
+    // تابع دریافت لیست دسته‌بندی‌ها
+    function loadCategories() {
+        // نمایش loading
+        categorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+        categorySelect.disabled = true;
+
+        fetch('/get_categories')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // پاک کردن گزینه loading
+                    categorySelect.innerHTML = '<option value="">انتخاب کنید</option>';
+                    
+                    // اضافه کردن دسته‌بندی‌ها
+                    data.categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                } else {
+                    categorySelect.innerHTML = '<option value="">خطا در دریافت لیست</option>';
+                    console.error('Error loading categories:', data.message);
+                }
+            })
+            .catch(error => {
+                categorySelect.innerHTML = '<option value="">خطا در ارتباط با سرور</option>';
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                categorySelect.disabled = false;
+            });
+    }
+
+    // بارگذاری اولیه دسته‌بندی‌ها
+    loadCategories();
 
     // مدیریت فرم جستجو
     document.getElementById('searchForm').addEventListener('submit', function(e) {
@@ -200,6 +255,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryId = document.getElementById('category').value;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
+
+        // اعتبارسنجی انتخاب دسته‌بندی
+        if (!categoryId) {
+            alert('لطفاً یک دسته‌بندی انتخاب کنید');
+            return;
+        }
+
+        // اعتبارسنجی تاریخ‌ها
+        if (startDate && endDate && startDate > endDate) {
+            alert('تاریخ شروع نمی‌تواند بزرگتر از تاریخ پایان باشد');
+            return;
+        }
 
         // نمایش loading
         document.getElementById('loading').style.display = 'block';
@@ -244,6 +311,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // پر کردن جدول هزینه‌ها
         const tbody = document.getElementById('expensesTable');
         tbody.innerHTML = '';
+        
+        if (data.expenses.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center">هیچ هزینه‌ای یافت نشد</td>
+                </tr>
+            `;
+            return;
+        }
         
         data.expenses.forEach(expense => {
             const row = document.createElement('tr');
