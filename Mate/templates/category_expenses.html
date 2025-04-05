@@ -209,21 +209,35 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#endDate').persianDatepicker(datePickerOptions);
 
     function loadCategories() {
+        // نمایش loading
+        categorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
+        categorySelect.disabled = true;
+
         fetch('/get_categories')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const categorySelect = document.getElementById('category');
-                    categorySelect.innerHTML = '<option value="">انتخاب دسته‌بندی</option>';
+                    // پاک کردن گزینه loading
+                    categorySelect.innerHTML = '<option value="">انتخاب کنید</option>';
+                    
+                    // اضافه کردن دسته‌بندی‌ها
                     data.categories.forEach(category => {
-                        categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
                     });
                 } else {
-                    console.error('خطا در دریافت دسته‌بندی‌ها:', data.message);
+                    categorySelect.innerHTML = '<option value="">خطا در دریافت لیست</option>';
+                    console.error('Error loading categories:', data.message);
                 }
             })
             .catch(error => {
-                console.error('خطا در دریافت دسته‌بندی‌ها:', error);
+                categorySelect.innerHTML = '<option value="">خطا در ارتباط با سرور</option>';
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                categorySelect.disabled = false;
             });
     }
 
