@@ -191,7 +191,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const categorySelect = document.getElementById('category');
     
-    // تنظیمات تقویم شمسی
     const datePickerOptions = {
         format: 'YYYY-MM-DD',
         initialValue: false,
@@ -200,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
             enabled: false
         },
         onSelect: function(unix) {
-            // تبدیل تاریخ میلادی به شمسی
             const date = new Date(unix);
             const persianDate = new persianDate(date);
             return persianDate.format('YYYY-MM-DD');
@@ -210,9 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#startDate').persianDatepicker(datePickerOptions);
     $('#endDate').persianDatepicker(datePickerOptions);
 
-    // تابع دریافت لیست دسته‌بندی‌ها
     function loadCategories() {
-        fetch('/auth/get_categories')
+        fetch('/get_categories')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
