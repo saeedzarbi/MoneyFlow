@@ -866,10 +866,19 @@ def category_expenses_page():
 def category_yearly_report():
     try:
         category_id = request.args.get('category_id', type=int)
-        year = request.args.get('year', type=int)
+        persian_year = request.args.get('year', type=int)
 
-        if not category_id or not year:
+        if not category_id or not persian_year:
             return jsonify({'success': False, 'message': 'پارامترهای ورودی نامعتبر هستند'})
+
+        # تبدیل سال شمسی به میلادی
+        # برای اولین روز سال شمسی
+        persian_start_date = JalaliDate(persian_year, 1, 1)
+        gregorian_start = persian_start_date.to_gregorian()
+        
+        # برای آخرین روز سال شمسی
+        persian_end_date = JalaliDate(persian_year, 12, 29)
+        gregorian_end = persian_end_date.to_gregorian()
 
         # دریافت اطلاعات دسته‌بندی
         category = Category.query.get(category_id)
@@ -879,41 +888,81 @@ def category_yearly_report():
         # دریافت کل هزینه‌های سال برای محاسبه درصد
         total_year_expenses = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,
-            extract('year', Expense.date) == year
+            Expense.date >= gregorian_start,
+            Expense.date <= gregorian_end
         ).scalar() or 0
 
-        # دریافت هزینه‌های ماهانه دسته‌بندی
-        monthly_expenses = db.session.query(
-            extract('month', Expense.date).label('month'),
-            func.sum(Expense.amount).label('amount'),
-            func.count(Expense.id).label('count')
-        ).filter(
-            Expense.category_id == category_id,
-            Expense.user_id == current_user.id,
-            extract('year', Expense.date) == year
-        ).group_by(
-            extract('month', Expense.date)
-        ).all()
+        # دریافت هزینه‌های ماهانه دسته‌بندی با تبدیل تاریخ میلادی به شمسی
+        monthly_expenses = []
+        current_date = gregorian_start
+        
+        while current_date <= gregorian_end:
+            # تبدیل تاریخ میلادی به شمسی
+            jalali_date = JalaliDate.to_jalali(current_date.year, current_date.month, current_date.day)
+            
+            # محاسبه اول و آخر ماه میلادی برای ماه شمسی فعلی
+            if jalali_date.month < 12:
+                next_month = JalaliDate(jalali_date.year, jalali_date.month + 1, 1)
+            else:
+                next_month = JalaliDate(jalali_date.year + 1, 1, 1)
+            
+            month_end = next_month.to_gregorian() - timedelta(days=1)
+            
+            # دریافت هزینه‌های این ماه
+            month_data = db.session.query(
+                func.sum(Expense.amount).label('amount'),
+                func.count(Expense.id).label('count')
+            ).filter(
+                Expense.category_id == category_id,
+                Expense.user_id == current_user.id,
+                Expense.date >= current_date,
+                Expense.date <= month_end
+            ).first()
+
+            if month_data.amount:
+                monthly_expenses.append({
+                    'month': jalali_date.month,
+                    'amount': month_data.amount,
+                    'count': month_data.count
+                })
+
+            # حرکت به ماه بعد
+            current_date = next_month.to_gregorian()
 
         # محاسبه آمار کلی
-        total_category_amount = sum(expense.amount for expense in monthly_expenses)
+        total_category_amount = sum(expense['amount'] for expense in monthly_expenses)
         average_monthly = total_category_amount / 12 if total_category_amount > 0 else 0
         percentage_of_total = (total_category_amount / total_year_expenses * 100) if total_year_expenses > 0 else 0
 
         # تبدیل نتایج به فرمت مورد نیاز
         monthly_data = []
         for expense in monthly_expenses:
-            percentage = (expense.amount / total_category_amount * 100) if total_category_amount > 0 else 0
+            percentage = (expense['amount'] / total_category_amount * 100) if total_category_amount > 0 else 0
             monthly_data.append({
-                'month': int(expense.month),
-                'amount': expense.amount,
-                'transaction_count': expense.count,
+                'month': expense['month'],
+                'amount': expense['amount'],
+                'transaction_count': expense['count'],
                 'percentage': round(percentage, 2)
             })
 
+        # پر کردن ماه‌های خالی با مقدار صفر
+        all_months = {i: 0 for i in range(1, 13)}
+        for data in monthly_data:
+            all_months[data['month']] = data
+
+        final_monthly_data = [
+            {
+                'month': month,
+                'amount': data['amount'] if isinstance(data, dict) else 0,
+                'transaction_count': data['transaction_count'] if isinstance(data, dict) else 0,
+                'percentage': data['percentage'] if isinstance(data, dict) else 0
+            }
+            for month, data in all_months.items()
+        ]
+
         return jsonify({
             'success': True,
-            'monthly_data': monthly_data,
+            'monthly_data': final_monthly_data,
             'stats': {
                 'total_amount': total_category_amount,
                 'average_monthly': average_monthly,
