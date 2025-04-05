@@ -10,7 +10,7 @@ from persiantools.jdatetime import JalaliDate
 import requests
 import os
 from dotenv import load_dotenv
-from sqlalchemy import func
+from sqlalchemy import func, extract
 
 load_dotenv()
 
@@ -862,6 +862,7 @@ def category_expenses_page():
     return render_template('category_expenses.html')
 
 @auth_bp.route('/api/category_yearly_report')
+@login_required
 def category_yearly_report():
     try:
         category_id = request.args.get('category_id', type=int)
@@ -877,6 +878,7 @@ def category_yearly_report():
 
         # دریافت کل هزینه‌های سال برای محاسبه درصد
         total_year_expenses = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.user_id == current_user.id,
             extract('year', Expense.date) == year
         ).scalar() or 0
 
@@ -887,6 +889,7 @@ def category_yearly_report():
             func.count(Expense.id).label('count')
         ).filter(
             Expense.category_id == category_id,
+            Expense.user_id == current_user.id,
             extract('year', Expense.date) == year
         ).group_by(
             extract('month', Expense.date)
