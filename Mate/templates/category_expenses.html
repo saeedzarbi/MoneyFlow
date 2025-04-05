@@ -131,14 +131,17 @@
 <!-- Custom JavaScript -->
 <script src="{{ url_for('static', filename='js/category_expenses.js') }}"></script>
 <script>
-// Ensure the page is initialized after all scripts are loaded
-$(document).ready(function() {
-    console.log('Document ready, initializing page...');
-    if (typeof initializePage === 'function') {
-        initializePage();
-    } else {
-        console.error('initializePage function not found');
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded, waiting for jQuery...');
+    // Wait for jQuery to be ready
+    $(function() {
+        console.log('jQuery ready, initializing page...');
+        if (typeof initializePage === 'function') {
+            initializePage();
+        } else {
+            console.error('initializePage function not found');
+        }
+    });
 });
 </script>
 {% endblock %} 
