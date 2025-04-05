@@ -207,62 +207,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // فعال‌سازی تقویم برای فیلدهای تاریخ
     $('#startDate').persianDatepicker(datePickerOptions);
     $('#endDate').persianDatepicker(datePickerOptions);
 
     // تابع دریافت لیست دسته‌بندی‌ها
     function loadCategories() {
-        // نمایش loading
-        categorySelect.innerHTML = '<option value="">در حال بارگذاری...</option>';
-        categorySelect.disabled = true;
-
-        fetch('/get_categories')
+        fetch('/auth/get_categories')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // پاک کردن گزینه loading
-                    categorySelect.innerHTML = '<option value="">انتخاب کنید</option>';
-                    
-                    // اضافه کردن دسته‌بندی‌ها
+                    const categorySelect = document.getElementById('category');
+                    categorySelect.innerHTML = '<option value="">انتخاب دسته‌بندی</option>';
                     data.categories.forEach(category => {
-                        const option = document.createElement('option');
-                        option.value = category.id;
-                        option.textContent = category.name;
-                        categorySelect.appendChild(option);
+                        categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
                     });
                 } else {
-                    categorySelect.innerHTML = '<option value="">خطا در دریافت لیست</option>';
-                    console.error('Error loading categories:', data.message);
+                    console.error('خطا در دریافت دسته‌بندی‌ها:', data.message);
                 }
             })
             .catch(error => {
-                categorySelect.innerHTML = '<option value="">خطا در ارتباط با سرور</option>';
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                categorySelect.disabled = false;
+                console.error('خطا در دریافت دسته‌بندی‌ها:', error);
             });
     }
 
-    // بارگذاری اولیه دسته‌بندی‌ها
     loadCategories();
 
-    // مدیریت فرم جستجو
     document.getElementById('searchForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        searchExpenses();
+    });
+
+    function searchExpenses() {
         const categoryId = document.getElementById('category').value;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
 
-        // اعتبارسنجی انتخاب دسته‌بندی
         if (!categoryId) {
             alert('لطفاً یک دسته‌بندی انتخاب کنید');
             return;
         }
 
-        // اعتبارسنجی تاریخ‌ها
         if (startDate && endDate && startDate > endDate) {
             alert('تاریخ شروع نمی‌تواند بزرگتر از تاریخ پایان باشد');
             return;
@@ -273,42 +258,35 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('results').style.display = 'none';
 
         // ساخت URL با پارامترها
-        let url = `/category_expenses_summary?category_id=${categoryId}`;
+        let url = `/auth/category_expenses_summary?category_id=${categoryId}`;
         if (startDate) url += `&start_date=${startDate}`;
         if (endDate) url += `&end_date=${endDate}`;
 
-        // ارسال درخواست
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                // مخفی کردن loading
-                document.getElementById('loading').style.display = 'none';
-                
                 if (data.success) {
                     displayResults(data);
                 } else {
-                    alert(data.message || 'خطا در دریافت اطلاعات');
+                    alert('خطا در دریافت اطلاعات: ' + data.message);
                 }
             })
             .catch(error => {
-                // مخفی کردن loading
-                document.getElementById('loading').style.display = 'none';
                 console.error('Error:', error);
                 alert('خطا در ارتباط با سرور');
+            })
+            .finally(() => {
+                document.getElementById('loading').style.display = 'none';
             });
-    });
+    }
 
-    // نمایش نتایج
     function displayResults(data) {
-        // نمایش بخش نتایج
         document.getElementById('results').style.display = 'block';
 
-        // پر کردن اطلاعات خلاصه
         document.getElementById('categoryName').textContent = data.category_name;
         document.getElementById('expenseCount').textContent = data.expense_count;
         document.getElementById('totalAmount').textContent = new Intl.NumberFormat('fa-IR').format(data.total_amount) + ' تومان';
 
-        // پر کردن جدول هزینه‌ها
         const tbody = document.getElementById('expensesTable');
         tbody.innerHTML = '';
         
