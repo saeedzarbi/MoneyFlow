@@ -861,7 +861,7 @@ def get_category_expenses_summary():
 def category_expenses_page():
     return render_template('category_expenses.html')
 
-@auth_bp.route('/api/category_yearly_report')
+@auth_bp.route('/category_yearly_report')
 @login_required
 def category_yearly_report():
     try:

@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         showLoading(true);
-        fetch(`/api/category_yearly_report?category_id=${categoryId}&year=${year}`)
+        fetch(`/category_yearly_report?category_id=${categoryId}&year=${year}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
