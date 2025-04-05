@@ -10,6 +10,7 @@ from persiantools.jdatetime import JalaliDate
 import requests
 import os
 from dotenv import load_dotenv
+from sqlalchemy import func
 
 load_dotenv()
 
@@ -218,7 +219,7 @@ def add_expense():
 
 @auth_bp.route('/report')
 @login_required
-def reports():
+def report():
     return render_template('report.html')
 
 @auth_bp.route('/get_all_report', methods=['GET'])
@@ -859,4 +860,65 @@ def get_category_expenses_summary():
 @login_required
 def category_expenses_page():
     return render_template('category_expenses.html')
+
+@auth_bp.route('/api/category_yearly_report')
+def category_yearly_report():
+    try:
+        category_id = request.args.get('category_id', type=int)
+        year = request.args.get('year', type=int)
+
+        if not category_id or not year:
+            return jsonify({'success': False, 'message': 'پارامترهای ورودی نامعتبر هستند'})
+
+        # دریافت اطلاعات دسته‌بندی
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'success': False, 'message': 'دسته‌بندی مورد نظر یافت نشد'})
+
+        # دریافت کل هزینه‌های سال برای محاسبه درصد
+        total_year_expenses = db.session.query(func.sum(Expense.amount)).filter(
+            extract('year', Expense.date) == year
+        ).scalar() or 0
+
+        # دریافت هزینه‌های ماهانه دسته‌بندی
+        monthly_expenses = db.session.query(
+            extract('month', Expense.date).label('month'),
+            func.sum(Expense.amount).label('amount'),
+            func.count(Expense.id).label('count')
+        ).filter(
+            Expense.category_id == category_id,
+            extract('year', Expense.date) == year
+        ).group_by(
+            extract('month', Expense.date)
+        ).all()
+
+        # محاسبه آمار کلی
+        total_category_amount = sum(expense.amount for expense in monthly_expenses)
+        average_monthly = total_category_amount / 12 if total_category_amount > 0 else 0
+        percentage_of_total = (total_category_amount / total_year_expenses * 100) if total_year_expenses > 0 else 0
+
+        # تبدیل نتایج به فرمت مورد نیاز
+        monthly_data = []
+        for expense in monthly_expenses:
+            percentage = (expense.amount / total_category_amount * 100) if total_category_amount > 0 else 0
+            monthly_data.append({
+                'month': int(expense.month),
+                'amount': expense.amount,
+                'transaction_count': expense.count,
+                'percentage': round(percentage, 2)
+            })
+
+        return jsonify({
+            'success': True,
+            'monthly_data': monthly_data,
+            'stats': {
+                'total_amount': total_category_amount,
+                'average_monthly': average_monthly,
+                'percentage_of_total': round(percentage_of_total, 2)
+            }
+        })
+
+    except Exception as e:
+        print(f"Error in category_yearly_report: {str(e)}")
+        return jsonify({'success': False, 'message': 'خطا در پردازش درخواست'})
 

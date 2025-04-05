@@ -1,119 +1,192 @@
 {% extends "base.html" %}
 
-{% block title %}گزارش هزینه‌ها و درآمدها{% endblock %}
+{% block title %}گزارش‌های مالی{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    .report-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+    .filter-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    .stats-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+    }
+    .table th {
+        background-color: #f8f9fa;
+    }
+    .loading {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .loading i {
+        font-size: 2rem;
+        color: #0d6efd;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Summary Cards -->
-    <div class="col-md-4 mb-4">
-        <div class="card bg-primary text-white h-100">
-            <div class="card-body">
-                <h5 class="card-title">مجموع هزینه‌ها</h5>
-                <h2 class="card-text" id="totalCosts">0</h2>
-                <p class="card-text">تومان</p>
-            </div>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-chart-line me-2"></i>
+                گزارش‌های مالی
+            </h2>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-success text-white h-100">
-            <div class="card-body">
-                <h5 class="card-title">مجموع درآمدها</h5>
-                <h2 class="card-text" id="totalIncoms">0</h2>
-                <p class="card-text">تومان</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-info text-white h-100">
-            <div class="card-body">
-                <h5 class="card-title">موجودی</h5>
-                <h2 class="card-text" id="balance">0</h2>
-                <p class="card-text">تومان</p>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Report Buttons -->
-<div class="row mb-4">
-    <div class="col-12 text-center">
-        <button class="btn btn-primary btn-lg me-2" id="filterBtn">
-            <i class="fas fa-receipt me-2"></i>گزارش هزینه‌ها
-        </button>
-        <button class="btn btn-success btn-lg" id="incomeBtn">
-            <i class="fas fa-money-bill-wave me-2"></i>گزارش درآمدها
-        </button>
+    <!-- فیلترها -->
+    <div class="filter-section mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="categorySelect" class="form-label">
+                        <i class="fas fa-folder me-1"></i>
+                        دسته‌بندی
+                    </label>
+                    <select class="form-select" id="categorySelect">
+                        <option value="">انتخاب کنید</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="yearSelect" class="form-label">
+                        <i class="fas fa-calendar me-1"></i>
+                        سال
+                    </label>
+                    <select class="form-select" id="yearSelect">
+                        <option value="">انتخاب کنید</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary w-100" id="generateReport">
+                    <i class="fas fa-sync-alt me-1"></i>
+                    نمایش گزارش
+                </button>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Report Section -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div id="reportSection" class="table-responsive">
-                    <!-- Report content will be loaded here -->
+    <!-- نمایش لودینگ -->
+    <div class="loading" id="loading">
+        <i class="fas fa-spinner"></i>
+        <p class="mt-2">در حال دریافت اطلاعات...</p>
+    </div>
+
+    <!-- نمودار -->
+    <div class="card report-card mb-4" id="chartSection" style="display: none;">
+        <div class="card-body">
+            <h4 class="card-title text-center mb-4">
+                <i class="fas fa-chart-bar me-2"></i>
+                نمودار هزینه‌های ماهانه
+            </h4>
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="row" id="statsSection" style="display: none;">
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        مجموع هزینه‌ها
+                    </h5>
+                    <p class="card-text h3" id="totalExpense">0 تومان</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        میانگین ماهانه
+                    </h5>
+                    <p class="card-text h3" id="averageExpense">0 تومان</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-percentage me-2"></i>
+                        درصد از کل هزینه‌ها
+                    </h5>
+                    <p class="card-text h3" id="expensePercentage">0%</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Expense Details Modal -->
-<div class="modal fade" id="expenseDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">جزئیات هزینه‌ها</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>مبلغ</th>
-                                <th>توضیحات</th>
-                                <th>تاریخ</th>
-                                <th>عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="expenseDetailsBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Income Details Modal -->
-<div class="modal fade" id="incomeDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">جزئیات درآمدها</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>مبلغ</th>
-                                <th>توضیحات</th>
-                                <th>تاریخ</th>
-                                <th>عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="incomeDetailsBody"></tbody>
-                    </table>
-                </div>
+    <!-- جدول جزئیات -->
+    <div class="card report-card mt-4" id="tableSection" style="display: none;">
+        <div class="card-body">
+            <h4 class="card-title text-center mb-4">
+                <i class="fas fa-table me-2"></i>
+                جزئیات هزینه‌های ماهانه
+            </h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ماه</th>
+                            <th>مبلغ</th>
+                            <th>درصد از کل سال</th>
+                            <th>تعداد تراکنش</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTable">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Custom JavaScript -->
 <script src="{{ url_for('static', filename='js/report.js') }}"></script>
 {% endblock %}
