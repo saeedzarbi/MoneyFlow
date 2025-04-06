@@ -1,39 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}آگهی‌های شغلی{% endblock %}
+{% block title %}Job-AD{% endblock %}
 
 {% block extra_css %}
 <style>
-    .job-card {
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease;
-        margin-bottom: 1rem;
-    }
-    .job-card:hover {
-        transform: translateY(-5px);
-    }
-    .company-logo {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
-    }
-    .job-title {
-        color: #2c3e50;
-        font-weight: 600;
-    }
-    .company-name {
-        color: #7f8c8d;
-    }
-    .job-details {
-        color: #34495e;
-    }
-    .salary {
-        color: #27ae60;
-        font-weight: 600;
-    }
-    .location {
-        color: #7f8c8d;
+    .search-form {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 2rem auto;
+        max-width: 600px;
     }
     .loading {
         display: none;
@@ -49,11 +25,45 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
-    .search-form {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+    .job-list {
+        margin-top: 2rem;
+    }
+    .job-item {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .job-item:hover {
+        transform: translateY(-2px);
+    }
+    .job-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    .job-company {
+        color: #7f8c8d;
+        margin-bottom: 0.5rem;
+    }
+    .job-location {
+        color: #34495e;
+        font-size: 0.9rem;
+    }
+    .job-badges {
+        margin-top: 0.5rem;
+    }
+    .badge {
+        margin-right: 0.5rem;
+    }
+    .urgent-badge {
+        background-color: #e74c3c;
+    }
+    .remote-badge {
+        background-color: #2ecc71;
     }
 </style>
 {% endblock %}
@@ -69,17 +79,16 @@
         </div>
     </div>
 
-    <!-- فرم جستجو -->
     <div class="search-form">
-        <form id="searchForm" class="row g-3">
-            <div class="col-md-8 mx-auto">
+        <form id="searchForm">
+            <div class="mb-3">
                 <label for="keyword" class="form-label">
                     <i class="fas fa-search me-1"></i>
                     کلیدواژه
                 </label>
                 <input type="text" class="form-control" id="keyword" placeholder="مثال: برنامه نویس">
             </div>
-            <div class="col-12 text-center">
+            <div class="text-center">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search me-2"></i>
                     جستجو
@@ -88,15 +97,12 @@
         </form>
     </div>
 
-    <!-- Loading Indicator -->
     <div class="loading" id="loading">
         <i class="fas fa-spinner"></i>
-        <p class="mt-2">در حال دریافت آگهی‌ها...</p>
+        <p class="mt-2">در حال جستجو...</p>
     </div>
 
-    <!-- نتایج جستجو -->
-    <div id="results">
-        <!-- آگهی‌ها اینجا نمایش داده می‌شوند -->
+    <div id="jobList" class="job-list">
     </div>
 </div>
 {% endblock %}
@@ -106,10 +112,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchForm = document.getElementById('searchForm');
     const loading = document.getElementById('loading');
-    const results = document.getElementById('results');
-
-    // جستجوی اولیه با کلیدواژه پیش‌فرض
-    searchJobs('security');
+    const jobList = document.getElementById('jobList');
 
     searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -119,11 +122,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function searchJobs(keyword) {
         loading.style.display = 'block';
-        results.innerHTML = '';
+        jobList.innerHTML = '';
 
         console.log('Sending request with keyword:', keyword);
 
-        fetch(`/auth/api/job_listings?keyword=${encodeURIComponent(keyword)}`, {
+        fetch(`/api/job_listings?keyword=${encodeURIComponent(keyword)}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -141,9 +144,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             console.log('Received data:', data);
             if (data.success) {
-                displayResults(data);
+                displayJobs(data.jobPosts);
             } else {
-                results.innerHTML = `
+                jobList.innerHTML = `
                     <div class="alert alert-danger">
                         ${data.message}
                     </div>
@@ -152,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            results.innerHTML = `
+            jobList.innerHTML = `
                 <div class="alert alert-danger">
                     خطا در ارتباط با سرور: ${error.message}
                 </div>
@@ -163,9 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function displayResults(data) {
-        if (!data.jobPosts || data.jobPosts.length === 0) {
-            results.innerHTML = `
+    function displayJobs(jobs) {
+        if (!jobs || jobs.length === 0) {
+            jobList.innerHTML = `
                 <div class="alert alert-info">
                     هیچ آگهی شغلی یافت نشد
                 </div>
@@ -173,49 +176,27 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const jobsHtml = data.jobPosts.map(job => `
-            <div class="card job-card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-2 text-center">
-                            <img src="${job.companyLogo || '/static/images/default-company.png'}" 
-                                 alt="${job.companyName}" 
-                                 class="company-logo">
-                        </div>
-                        <div class="col-md-10">
-                            <h5 class="job-title">${job.title}</h5>
-                            <p class="company-name">
-                                <i class="fas fa-building me-1"></i>
-                                ${job.companyName}
-                            </p>
-                            <div class="job-details">
-                                <span class="salary me-3">
-                                    <i class="fas fa-money-bill-wave me-1"></i>
-                                    ${job.salary || 'توافقی'}
-                                </span>
-                                <span class="location">
-                                    <i class="fas fa-map-marker-alt me-1"></i>
-                                    ${job.location}
-                                </span>
-                            </div>
-                            <div class="mt-2">
-                                <a href="${job.jobUrl}" target="_blank" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-external-link-alt me-1"></i>
-                                    مشاهده جزئیات
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+        const jobsHtml = jobs.map(job => `
+            <div class="job-item">
+                <div class="job-title">
+                    ${job.isUrgent ? '<span class="badge urgent-badge">فوری</span>' : ''}
+                    ${job.title}
+                </div>
+                <div class="job-company">
+                    <i class="fas fa-building me-1"></i>
+                    ${job.company}
+                </div>
+                <div class="job-location">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    ${job.location}
+                </div>
+                <div class="job-badges">
+                    ${job.isRemote ? '<span class="badge remote-badge">دورکاری</span>' : ''}
                 </div>
             </div>
         `).join('');
 
-        results.innerHTML = `
-            <div class="alert alert-info mb-3">
-                تعداد ${data.totalCount} آگهی یافت شد
-            </div>
-            ${jobsHtml}
-        `;
+        jobList.innerHTML = jobsHtml;
     }
 });
 </script>

@@ -926,15 +926,12 @@ def category_yearly_report():
                     'count': month_data.count
                 })
 
-            # حرکت به ماه بعد
             current_date = next_month.to_gregorian()
 
-        # محاسبه آمار کلی
         total_category_amount = sum(expense['amount'] for expense in monthly_expenses)
         average_monthly = total_category_amount / 12 if total_category_amount > 0 else 0
         percentage_of_total = (total_category_amount / total_year_expenses * 100) if total_year_expenses > 0 else 0
 
-        # تبدیل نتایج به فرمت مورد نیاز
         monthly_data = []
         for expense in monthly_expenses:
             percentage = (expense['amount'] / total_category_amount * 100) if total_category_amount > 0 else 0
@@ -945,7 +942,6 @@ def category_yearly_report():
                 'percentage': round(percentage, 2)
             })
 
-        # پر کردن ماه‌های خالی با مقدار صفر
         all_months = {i: 0 for i in range(1, 13)}
         for data in monthly_data:
             all_months[data['month']] = data
@@ -984,38 +980,26 @@ def job_listings_page():
 def get_job_listings():
     try:
         keyword = request.args.get('keyword', 'security')
-        print("Received keyword:", keyword)  # برای دیباگ
-
+        print("Received keyword:", keyword)  
         headers = {
             'Web-App-Version': '17.2.17',
-            'Sec-Ch-Ua-Platform': 'Windows',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Sec-Ch-Ua': '"Not:A-Brand";v="24", "Chromium";v="134"',
-            'Clientid': '42047718',
             'Sec-Ch-Ua-Mobile': '?0',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json',
-            'Page-Route': 'https://jobvision.ir/jobs/category/developer-in-tehran?searchTimeRange=3&page=1&sort=1',
-            'Ngsw-Bypass': 'true',
             'Origin': 'https://jobvision.ir',
-            'Sec-Fetch-Site': 'same-site',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Dest': 'empty',
             'Referer': 'https://jobvision.ir/'
         }
 
         payload = {
-            "pageSize": 30,
+            "pageSize": 50,
             "requestedPage": 1,
-            "jobCategoryUrlTitle": keyword,
+            "keyword": f"{keyword}",
             "sortBy": 1,
             "searchTimeRange": 3,
             "locationWrapper": "tehran",
             "searchId": None
         }
-
-        print("Sending request to JobVision API with payload:", payload)  # برای دیباگ
 
         response = requests.post(
             'https://candidateapi.jobvision.ir/api/v1/JobPost/List',
@@ -1023,19 +1007,47 @@ def get_job_listings():
             json=payload
         )
 
-        print("JobVision API response status:", response.status_code)  # برای دیباگ
-
         if response.status_code == 200:
             response_data = response.json()
             if response_data.get('isSuccess'):
                 job_data = response_data.get('data', {})
-                print(job_data)
+                job_posts = job_data.get('jobPosts', [])
+                
+                # فرمت‌بندی پیام اسلک
+                slack_message = f"🔍 *نتایج جستجو برای \"{keyword}\"*\n\n"
+                for job in job_posts:
+                    location = job.get('location', {}).get('city', {}).get('titleFa', 'نامشخص')
+                    experience = job.get('properties', {}).get('requiredRelatedExperienceYears', 'نامشخص')
+                    isRemote = '✅' if job.get('properties', {}).get('isRemote') else '❌'
+                    isUrgent = '🔥' if job.get('properties', {}).get('isUrgent') else ''
+                    activation_date = job.get('activationTime', {}).get('date', 'نامشخص')
+                    
+                    slack_message += f"*{isUrgent} {job.get('title', 'نامشخص')}*\n"
+                    slack_message += f"🏢 شرکت: {job.get('company', {}).get('nameFa', 'نامشخص')}\n"
+                    slack_message += f"📍 محل کار: {location}\n"
+                    slack_message += f"💼 نوع همکاری: {job.get('workType', {}).get('titleFa', 'نامشخص')}\n"
+                    slack_message += f"⏳ سابقه کار: {experience} سال\n"
+                    slack_message += f"🏠 دورکاری: {isRemote}\n"
+                    slack_message += f"📅 تاریخ انتشار: {activation_date}\n"
+                    slack_message += f"🔗 لینک: https://jobvision.ir{job.get('company', {}).get('pageUrl', '')}\n"
+                    slack_message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                # ارسال پیام به اسلک
+                send_slack_notification(slack_message)
+                
+                # آماده‌سازی داده‌های نمایشی برای فرانت‌اند
+                formatted_jobs = [{
+                    'title': job.get('title', 'نامشخص'),
+                    'company': job.get('company', {}).get('nameFa', 'نامشخص'),
+                    'location': job.get('location', {}).get('city', {}).get('titleFa', 'نامشخص'),
+                    'isUrgent': job.get('properties', {}).get('isUrgent', False),
+                    'isRemote': job.get('properties', {}).get('isRemote', False)
+                } for job in job_posts]
+                
                 return jsonify({
                     "success": True,
-                    "jobPosts": job_data.get('jobPosts', []),
-                    "totalCount": len(job_data.get('jobPosts', [])),
-                    "currentPage": job_data.get('currentPage', 1),
-                    "pageSize": job_data.get('pageSize', 30)
+                    "jobPosts": formatted_jobs,
+                    "totalCount": len(job_posts)
                 })
             else:
                 return jsonify({
@@ -1049,7 +1061,7 @@ def get_job_listings():
             }), response.status_code
 
     except Exception as e:
-        print("Error in get_job_listings:", str(e))  # برای دیباگ
+        print("Error in get_job_listings:", str(e)) 
         return jsonify({
             "success": False,
             "message": f"خطا در پردازش درخواست: {str(e)}"
