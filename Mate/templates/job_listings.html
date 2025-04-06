@@ -89,7 +89,7 @@
                 <input type="text" class="form-control" id="keyword" placeholder="مثال: برنامه نویس">
             </div>
             <div class="text-center">
-                <button type="submit" class="btn btn-primary">
+                <button type="button" id="searchButton" class="btn btn-primary">
                     <i class="fas fa-search me-2"></i>
                     جستجو
                 </button>
@@ -110,14 +110,21 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const searchForm = document.getElementById('searchForm');
+    const searchButton = document.getElementById('searchButton');
     const loading = document.getElementById('loading');
     const jobList = document.getElementById('jobList');
 
-    searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const keyword = document.getElementById('keyword').value;
-        searchJobs(keyword);
+    searchButton.addEventListener('click', function() {
+        const keyword = document.getElementById('keyword').value.trim();
+        if (keyword) {
+            searchJobs(keyword);
+        } else {
+            jobList.innerHTML = `
+                <div class="alert alert-warning">
+                    لطفا یک کلیدواژه وارد کنید
+                </div>
+            `;
+        }
     });
 
     function searchJobs(keyword) {
