@@ -1026,12 +1026,22 @@ def get_job_listings():
         print("JobVision API response status:", response.status_code)  # برای دیباگ
 
         if response.status_code == 200:
-            job_data = response.json()
-            return jsonify({
-                "success": True,
-                "jobPosts": job_data.get('jobPosts', []),
-                "totalCount": job_data.get('totalCount', 0)
-            })
+            response_data = response.json()
+            if response_data.get('isSuccess'):
+                job_data = response_data.get('data', {})
+                print(job_data)
+                return jsonify({
+                    "success": True,
+                    "jobPosts": job_data.get('jobPosts', []),
+                    "totalCount": len(job_data.get('jobPosts', [])),
+                    "currentPage": job_data.get('currentPage', 1),
+                    "pageSize": job_data.get('pageSize', 30)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": response_data.get('message', 'خطا در دریافت اطلاعات')
+                }), 400
         else:
             return jsonify({
                 "success": False,
