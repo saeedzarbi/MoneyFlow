@@ -72,31 +72,12 @@
     <!-- فرم جستجو -->
     <div class="search-form">
         <form id="searchForm" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-8 mx-auto">
                 <label for="keyword" class="form-label">
                     <i class="fas fa-search me-1"></i>
                     کلیدواژه
                 </label>
                 <input type="text" class="form-control" id="keyword" placeholder="مثال: برنامه نویس">
-            </div>
-            <div class="col-md-4">
-                <label for="location" class="form-label">
-                    <i class="fas fa-map-marker-alt me-1"></i>
-                    شهر
-                </label>
-                <input type="text" class="form-control" id="location" placeholder="مثال: تهران">
-            </div>
-            <div class="col-md-4">
-                <label for="pageSize" class="form-label">
-                    <i class="fas fa-list me-1"></i>
-                    تعداد در صفحه
-                </label>
-                <select class="form-select" id="pageSize">
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="30" selected>30</option>
-                    <option value="50">50</option>
-                </select>
             </div>
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary">
@@ -134,19 +115,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function searchJobs() {
         const keyword = document.getElementById('keyword').value;
-        const location = document.getElementById('location').value;
-        const pageSize = document.getElementById('pageSize').value;
 
         loading.style.display = 'block';
         results.innerHTML = '';
 
         const payload = {
-            pageSize: parseInt(pageSize),
+            pageSize: 30,
             requestedPage: 1,
             sortBy: 1,
             keyword: keyword,
             searchTimeRange: 3,
-            locationWrapper: location || 'tehran',
+            locationWrapper: 'tehran',
             searchId: null
         };
 
@@ -157,14 +136,19 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('خطا در ارتباط با سرور');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 displayResults(data);
             } else {
                 results.innerHTML = `
                     <div class="alert alert-danger">
-                        خطا در دریافت آگهی‌ها: ${data.message}
+                        ${data.message}
                     </div>
                 `;
             }
@@ -173,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             results.innerHTML = `
                 <div class="alert alert-danger">
-                    خطا در ارتباط با سرور
+                    خطا در ارتباط با سرور: ${error.message}
                 </div>
             `;
         })
@@ -229,7 +213,12 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `).join('');
 
-        results.innerHTML = jobsHtml;
+        results.innerHTML = `
+            <div class="alert alert-info mb-3">
+                تعداد ${data.totalCount} آگهی یافت شد
+            </div>
+            ${jobsHtml}
+        `;
     }
 });
 </script>

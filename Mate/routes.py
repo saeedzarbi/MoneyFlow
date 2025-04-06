@@ -1022,16 +1022,21 @@ def get_job_listings():
         )
 
         if response.status_code == 200:
-            return jsonify(response.json())
+            job_data = response.json()
+            return jsonify({
+                "success": True,
+                "jobPosts": job_data.get('jobPosts', []),
+                "totalCount": job_data.get('totalCount', 0)
+            })
         else:
             return jsonify({
                 "success": False,
-                "message": f"Error from JobVision API: {response.status_code}"
+                "message": f"خطا در دریافت اطلاعات از سرور: {response.status_code}"
             }), response.status_code
 
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": str(e)
+            "message": f"خطا در پردازش درخواست: {str(e)}"
         }), 500
 
