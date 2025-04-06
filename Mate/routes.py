@@ -10,7 +10,7 @@ from persiantools.jdatetime import JalaliDate
 import requests
 import os
 from dotenv import load_dotenv
-from sqlalchemy import func, extract
+from sqlalchemy import func
 
 load_dotenv()
 
@@ -973,4 +973,65 @@ def category_yearly_report():
     except Exception as e:
         print(f"Error in category_yearly_report: {str(e)}")
         return jsonify({'success': False, 'message': 'خطا در پردازش درخواست'})
+
+@auth_bp.route('/job_listings')
+@login_required
+def job_listings_page():
+    return render_template('job_listings.html')
+
+@auth_bp.route('/api/job_listings', methods=['POST'])
+@login_required
+def get_job_listings():
+    try:
+        data = request.get_json()
+        page_size = data.get('pageSize', 30)
+        requested_page = data.get('requestedPage', 1)
+        sort_by = data.get('sortBy', 1)
+        keyword = data.get('keyword', '')
+        search_time_range = data.get('searchTimeRange', 3)
+        location = data.get('locationWrapper', 'tehran')
+
+        headers = {
+            'Web-App-Version': '17.2.17',
+            'Sec-Ch-Ua-Platform': 'Windows',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Sec-Ch-Ua': '"Not:A-Brand";v="24", "Chromium";v="134"',
+            'Clientid': '42047718',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'Origin': 'https://jobvision.ir',
+            'Referer': 'https://jobvision.ir/'
+        }
+
+        payload = {
+            "pageSize": page_size,
+            "requestedPage": requested_page,
+            "sortBy": sort_by,
+            "keyword": keyword,
+            "searchTimeRange": search_time_range,
+            "locationWrapper": location,
+            "searchId": None
+        }
+
+        response = requests.post(
+            'https://candidateapi.jobvision.ir/api/v1/JobPost/List',
+            headers=headers,
+            json=payload
+        )
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({
+                "success": False,
+                "message": f"Error from JobVision API: {response.status_code}"
+            }), response.status_code
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
