@@ -984,6 +984,14 @@ def job_listings_page():
 def get_job_listings():
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({
+                "success": False,
+                "message": "داده‌های ارسالی نامعتبر است"
+            }), 400
+
+        print("Received request data:", data)  # برای دیباگ
+
         page_size = data.get('pageSize', 30)
         requested_page = data.get('requestedPage', 1)
         sort_by = data.get('sortBy', 1)
@@ -1015,11 +1023,15 @@ def get_job_listings():
             "searchId": None
         }
 
+        print("Sending request to JobVision API with payload:", payload)  # برای دیباگ
+
         response = requests.post(
             'https://candidateapi.jobvision.ir/api/v1/JobPost/List',
             headers=headers,
             json=payload
         )
+
+        print("JobVision API response status:", response.status_code)  # برای دیباگ
 
         if response.status_code == 200:
             job_data = response.json()
@@ -1035,6 +1047,7 @@ def get_job_listings():
             }), response.status_code
 
     except Exception as e:
+        print("Error in get_job_listings:", str(e))  # برای دیباگ
         return jsonify({
             "success": False,
             "message": f"خطا در پردازش درخواست: {str(e)}"

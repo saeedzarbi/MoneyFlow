@@ -129,20 +129,27 @@ document.addEventListener('DOMContentLoaded', function() {
             searchId: null
         };
 
+        console.log('Sending request with payload:', payload);
+
         fetch('/api/job_listings', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(payload)
         })
         .then(response => {
+            console.log('Response status:', response.status);
             if (!response.ok) {
-                throw new Error('خطا در ارتباط با سرور');
+                return response.json().then(err => {
+                    throw new Error(err.message || 'خطا در ارتباط با سرور');
+                });
             }
             return response.json();
         })
         .then(data => {
+            console.log('Received data:', data);
             if (data.success) {
                 displayResults(data);
             } else {
