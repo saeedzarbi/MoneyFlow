@@ -979,25 +979,12 @@ def category_yearly_report():
 def job_listings_page():
     return render_template('job_listings.html')
 
-@auth_bp.route('/api/job_listings', methods=['POST'])
+@auth_bp.route('/api/job_listings', methods=['GET'])
 @login_required
 def get_job_listings():
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                "success": False,
-                "message": "داده‌های ارسالی نامعتبر است"
-            }), 400
-
-        print("Received request data:", data)  # برای دیباگ
-
-        page_size = data.get('pageSize', 30)
-        requested_page = data.get('requestedPage', 1)
-        sort_by = data.get('sortBy', 1)
-        keyword = data.get('keyword', '')
-        search_time_range = data.get('searchTimeRange', 3)
-        location = data.get('locationWrapper', 'tehran')
+        keyword = request.args.get('keyword', 'security')
+        print("Received keyword:", keyword)  # برای دیباگ
 
         headers = {
             'Web-App-Version': '17.2.17',
@@ -1019,12 +1006,12 @@ def get_job_listings():
         }
 
         payload = {
-            "pageSize": page_size,
-            "requestedPage": requested_page,
+            "pageSize": 30,
+            "requestedPage": 1,
             "jobCategoryUrlTitle": keyword,
-            "sortBy": sort_by,
-            "searchTimeRange": search_time_range,
-            "locationWrapper": location,
+            "sortBy": 1,
+            "searchTimeRange": 3,
+            "locationWrapper": "tehran",
             "searchId": None
         }
 

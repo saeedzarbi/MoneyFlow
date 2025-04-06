@@ -108,36 +108,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const loading = document.getElementById('loading');
     const results = document.getElementById('results');
 
+    // جستجوی اولیه با کلیدواژه پیش‌فرض
+    searchJobs('security');
+
     searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        searchJobs();
+        const keyword = document.getElementById('keyword').value;
+        searchJobs(keyword);
     });
 
-    function searchJobs() {
-        const keyword = document.getElementById('keyword').value;
-
+    function searchJobs(keyword) {
         loading.style.display = 'block';
         results.innerHTML = '';
 
-        const payload = {
-            pageSize: 30,
-            requestedPage: 1,
-            jobCategoryUrlTitle: keyword,
-            sortBy: 1,
-            searchTimeRange: 3,
-            locationWrapper: 'tehran',
-            searchId: null
-        };
+        console.log('Sending request with keyword:', keyword);
 
-        console.log('Sending request with payload:', payload);
-
-        fetch('/auth/api/job_listings', {
-            method: 'POST',
+        fetch(`/auth/api/job_listings?keyword=${encodeURIComponent(keyword)}`, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
                 'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
+            }
         })
         .then(response => {
             console.log('Response status:', response.status);
