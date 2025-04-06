@@ -122,8 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const payload = {
             pageSize: 30,
             requestedPage: 1,
+            jobCategoryUrlTitle: keyword,
             sortBy: 1,
-            keyword: keyword,
             searchTimeRange: 3,
             locationWrapper: 'tehran',
             searchId: null
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('Sending request with payload:', payload);
 
-        fetch('/api/job_listings', {
+        fetch('/auth/api/job_listings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

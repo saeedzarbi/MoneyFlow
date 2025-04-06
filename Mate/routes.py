@@ -1009,15 +1009,20 @@ def get_job_listings():
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json',
+            'Page-Route': 'https://jobvision.ir/jobs/category/developer-in-tehran?searchTimeRange=3&page=1&sort=1',
+            'Ngsw-Bypass': 'true',
             'Origin': 'https://jobvision.ir',
+            'Sec-Fetch-Site': 'same-site',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Dest': 'empty',
             'Referer': 'https://jobvision.ir/'
         }
 
         payload = {
             "pageSize": page_size,
             "requestedPage": requested_page,
+            "jobCategoryUrlTitle": keyword,
             "sortBy": sort_by,
-            "keyword": keyword,
             "searchTimeRange": search_time_range,
             "locationWrapper": location,
             "searchId": None
