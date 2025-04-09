@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const jobList = document.getElementById('jobList');
 
     searchButton.addEventListener('click', function() {
+        alert("Button clicked!"); // برای تست
         const keyword = document.getElementById('keyword').value.trim();
         if (keyword) {
             searchJobs(keyword);
