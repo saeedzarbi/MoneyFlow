@@ -35,7 +35,10 @@ def send_slack_notification(message):
         payload = {
             "text": message
         }
-        response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+        headers = {
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        response = requests.post(SLACK_WEBHOOK_URL, json=payload, headers=headers)
         return response.status_code == 200
     except Exception as e:
         print(f"Error sending Slack notification: {str(e)}")
@@ -150,7 +153,6 @@ def add_expense():
             if not category:
                 return jsonify({"message": "category not found"}), 404
 
-            # ایجاد و ذخیره هزینه
             expense = Expense(
                 amount=amount,
                 category_id=category_id,
@@ -161,23 +163,19 @@ def add_expense():
             db.session.add(expense)
             db.session.commit()
 
-            # Calculate monthly and daily expenses
             today_shamsi = jdatetime.date.today()
             current_year = today_shamsi.year
             current_month = today_shamsi.month
 
-            # Monthly start and end dates
             month_start = jdatetime.date(current_year, current_month, 1).togregorian()
             if current_month == 12:
                 month_end = jdatetime.date(current_year + 1, 1, 1).togregorian()
             else:
                 month_end = jdatetime.date(current_year, current_month + 1, 1).togregorian()
 
-            # Today's start and end dates
             today_start = jdatetime.date(current_year, current_month, today_shamsi.day).togregorian()
             today_end = jdatetime.date(current_year, current_month, today_shamsi.day + 1).togregorian()
 
-            # Calculate monthly total
             monthly_expenses = Expense.query.filter(
                 Expense.user_id == current_user.id,
                 Expense.date >= month_start,
@@ -185,7 +183,6 @@ def add_expense():
             ).all()
             monthly_total = sum(exp.amount for exp in monthly_expenses)
 
-            # Calculate today's total
             today_expenses = Expense.query.filter(
                 Expense.user_id == current_user.id,
                 Expense.date >= today_start,
@@ -193,7 +190,6 @@ def add_expense():
             ).all()
             today_total = sum(exp.amount for exp in today_expenses)
 
-            # Send Slack notification
             persian_date = jdatetime.datetime.fromgregorian(datetime=date_obj).strftime('%Y/%m/%d')
             formatted_amount = "{:,.0f}".format(float(amount))
             formatted_monthly = "{:,.0f}".format(float(monthly_total))
@@ -871,36 +867,28 @@ def category_yearly_report():
         if not category_id or not persian_year:
             return jsonify({'success': False, 'message': 'پارامترهای ورودی نامعتبر هستند'})
 
-        # تبدیل سال شمسی به میلادی
-        # برای اولین روز سال شمسی
         persian_start_date = JalaliDate(persian_year, 1, 1)
         gregorian_start = persian_start_date.to_gregorian()
         
-        # برای آخرین روز سال شمسی
         persian_end_date = JalaliDate(persian_year, 12, 29)
         gregorian_end = persian_end_date.to_gregorian()
 
-        # دریافت اطلاعات دسته‌بندی
         category = Category.query.get(category_id)
         if not category:
             return jsonify({'success': False, 'message': 'دسته‌بندی مورد نظر یافت نشد'})
 
-        # دریافت کل هزینه‌های سال برای محاسبه درصد
         total_year_expenses = db.session.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,
             Expense.date >= gregorian_start,
             Expense.date <= gregorian_end
         ).scalar() or 0
 
-        # دریافت هزینه‌های ماهانه دسته‌بندی با تبدیل تاریخ میلادی به شمسی
         monthly_expenses = []
         current_date = gregorian_start
         
         while current_date <= gregorian_end:
-            # تبدیل تاریخ میلادی به شمسی
             jalali_date = JalaliDate.to_jalali(current_date.year, current_date.month, current_date.day)
             
-            # محاسبه اول و آخر ماه میلادی برای ماه شمسی فعلی
             if jalali_date.month < 12:
                 next_month = JalaliDate(jalali_date.year, jalali_date.month + 1, 1)
             else:
@@ -1013,7 +1001,6 @@ def get_job_listings():
                 job_data = response_data.get('data', {})
                 job_posts = job_data.get('jobPosts', [])
                 
-                # فرمت‌بندی پیام اسلک
                 slack_message = f"🔍 *نتایج جستجو برای \"{keyword}\"*\n\n"
                 for job in job_posts:
                     location = job.get('location', {}).get('city', {}).get('titleFa', 'نامشخص')
@@ -1032,10 +1019,8 @@ def get_job_listings():
                     slack_message += f"🔗 لینک: https://jobvision.ir{job.get('company', {}).get('pageUrl', '')}\n"
                     slack_message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 
-                # ارسال پیام به اسلک
                 send_slack_notification(slack_message)
                 
-                # آماده‌سازی داده‌های نمایشی برای فرانت‌اند
                 formatted_jobs = [{
                     'title': job.get('title', 'نامشخص'),
                     'company': job.get('company', {}).get('nameFa', 'نامشخص'),
