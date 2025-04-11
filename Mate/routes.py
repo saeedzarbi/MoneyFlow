@@ -1,25 +1,27 @@
 from flask import  redirect, url_for, flash, Blueprint
-from extensions import bcrypt, db
+from models.extensions import bcrypt, db
 from flask_login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, RegistrationForm
 from flask import render_template, request, jsonify
-from models import db, Expense, Category, User, IncomeCategory, Income
+from models.mate import Expense, Category, User, IncomeCategory, Income
 import jdatetime
-from datetime import timedelta
+from datetime import timedelta, datetime
 from persiantools.jdatetime import JalaliDate
 import requests
 import os
 from dotenv import load_dotenv
-from sqlalchemy import func
+from sqlalchemy import func, extract
+from models.english_word import EnglishWord
+import pytz
+from utils.gemini_words import fetch_words_from_gemini
+from utils.slack_notifier import send_daily_words_to_slack
 
 load_dotenv()
 
 def convert_persian_to_gregorian(date_str):
     try:
-        # Split the date string into year, month, and day
         year, month, day = map(int, date_str.split('-'))
         
-        # Convert Persian date to Gregorian using JalaliDate
         persian_date = JalaliDate(year, month, day)
         gregorian_date = persian_date.to_gregorian()
         
@@ -46,8 +48,16 @@ def send_slack_notification(message):
 
 auth_bp = Blueprint('auth', __name__)  
 
-@auth_bp.route('/', methods=['GET', 'POST'])
+@auth_bp.route('')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.dashboard'))
+    return render_template('index.html')
+
+@auth_bp.route('login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -58,7 +68,7 @@ def login():
             flash('login failed, please check your email and password', 'danger')
     return render_template('login.html', form=form)
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
+@auth_bp.route('register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('auth.dashboard'))
@@ -88,7 +98,7 @@ def register():
     
     return render_template('register.html', form=form)
 
-@auth_bp.route('/logout')
+@auth_bp.route('logout')
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))  
@@ -101,7 +111,7 @@ def dashboard():
 
     return render_template('dashboard.html', categories=categories, income_categories=income_categories)
 
-@auth_bp.route('/add_category', methods=['POST'])
+@auth_bp.route('add_category', methods=['POST'])
 @login_required
 def add_category():
     try:
@@ -131,7 +141,7 @@ def add_category():
             return jsonify({'error': 'این دسته‌بندی قبلاً ثبت شده است'}), 400
         return jsonify({'error': 'خطا در ثبت دسته‌بندی'}), 500
 
-@auth_bp.route('/add_expense', methods=['POST'])
+@auth_bp.route('add_expense', methods=['POST'])
 @login_required
 def add_expense():
     if request.method == 'POST':
@@ -212,17 +222,15 @@ def add_expense():
         except Exception as e:
             return jsonify({"message": str(e)}), 500
 
-
-@auth_bp.route('/report')
+@auth_bp.route('report')
 @login_required
 def report():
     return render_template('report.html')
 
-@auth_bp.route('/get_all_report', methods=['GET'])
+@auth_bp.route('get_all_report', methods=['GET'])
 @login_required
 def get_monthly_report():
     try:
-        # دریافت تاریخ امروز به شمسی
         today_shamsi = jdatetime.date.today()
         current_year = today_shamsi.year
         current_month = today_shamsi.month
@@ -260,7 +268,7 @@ def get_monthly_report():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/add_income_category', methods=['POST'])
+@auth_bp.route('add_income_category', methods=['POST'])
 @login_required
 def add_income_category():
     try:
@@ -290,7 +298,7 @@ def add_income_category():
             return jsonify({'error': 'این دسته‌بندی قبلاً ثبت شده است'}), 400
         return jsonify({'error': 'خطا در ثبت دسته‌بندی'}), 500
 
-@auth_bp.route('/add_income', methods=['POST'])
+@auth_bp.route('add_income', methods=['POST'])
 @login_required
 def add_income():
     if request.method == 'POST':
@@ -341,7 +349,7 @@ def add_income():
         except Exception as e:
             return jsonify({"message": "error in adding income. please try again."}), 500
 
-@auth_bp.route('/get_income_report', methods=['GET'])
+@auth_bp.route('get_income_report', methods=['GET'])
 @login_required
 def get_income_report():
     try:
@@ -385,7 +393,7 @@ def get_income_report():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/expenses/<int:category_id>', methods=['GET'])
+@auth_bp.route('expenses/<int:category_id>', methods=['GET'])
 @login_required
 def get_category_expenses(category_id):
     try:
@@ -424,7 +432,7 @@ def get_category_expenses(category_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/detail/<int:expense_id>', methods=['DELETE'])
+@auth_bp.route('detail/<int:expense_id>', methods=['DELETE'])
 @login_required
 def delete_expense(expense_id):
     try:
@@ -442,7 +450,7 @@ def delete_expense(expense_id):
         db.session.rollback()
         return jsonify({"success": False, "message": f"error in deleting expense: {str(e)}"}), 500
 
-@auth_bp.route('/incomes/<int:category_id>', methods=['GET'])
+@auth_bp.route('incomes/<int:category_id>', methods=['GET'])
 @login_required
 def get_category_incomes(category_id):
     try:
@@ -481,7 +489,7 @@ def get_category_incomes(category_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/income-detail/<int:income_id>', methods=['DELETE'])
+@auth_bp.route('income-detail/<int:income_id>', methods=['DELETE'])
 @login_required
 def delete_income(income_id):
     try:
@@ -499,12 +507,12 @@ def delete_income(income_id):
         db.session.rollback()
         return jsonify({"success": False, "message": f"error in deleting income: {str(e)}"}), 500
 
-@auth_bp.route('/analytics')
+@auth_bp.route('analytics')
 @login_required
 def analytics():
     return render_template('analytics.html')
 
-@auth_bp.route('/get_monthly_analysis', methods=['GET'])
+@auth_bp.route('get_monthly_analysis', methods=['GET'])
 @login_required
 def get_monthly_analysis():
     try:
@@ -600,7 +608,7 @@ def get_monthly_analysis():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/get_yearly_summary', methods=['GET'])
+@auth_bp.route('get_yearly_summary', methods=['GET'])
 @login_required
 def get_yearly_summary():
     try:
@@ -662,7 +670,7 @@ def get_yearly_summary():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-@auth_bp.route('/get_categories', methods=['GET'])
+@auth_bp.route('get_categories', methods=['GET'])
 @login_required
 def get_categories():
     try:
@@ -674,7 +682,7 @@ def get_categories():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('/get_income_categories', methods=['GET'])
+@auth_bp.route('get_income_categories', methods=['GET'])
 @login_required
 def get_income_categories():
     try:
@@ -686,7 +694,7 @@ def get_income_categories():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('/get_recent_expenses', methods=['GET'])
+@auth_bp.route('get_recent_expenses', methods=['GET'])
 @login_required
 def get_recent_expenses():
     try:
@@ -710,7 +718,7 @@ def get_recent_expenses():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('/get_recent_incomes', methods=['GET'])
+@auth_bp.route('get_recent_incomes', methods=['GET'])
 @login_required
 def get_recent_incomes():
     try:
@@ -734,7 +742,7 @@ def get_recent_incomes():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('/delete_expense_category', methods=['POST'])
+@auth_bp.route('delete_expense_category', methods=['POST'])
 @login_required
 def delete_expense_category():
     try:
@@ -764,7 +772,7 @@ def delete_expense_category():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'خطا در حذف دسته‌بندی: {str(e)}'}), 500
 
-@auth_bp.route('/delete_income_category', methods=['POST'])
+@auth_bp.route('delete_income_category', methods=['POST'])
 @login_required
 def delete_income_category():
     try:
@@ -794,7 +802,7 @@ def delete_income_category():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'خطا در حذف دسته‌بندی: {str(e)}'}), 500
 
-@auth_bp.route('/category_expenses_summary', methods=['GET'])
+@auth_bp.route('category_expenses_summary', methods=['GET'])
 @login_required
 def get_category_expenses_summary():
     try:
@@ -852,12 +860,12 @@ def get_category_expenses_summary():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_bp.route('/category_expenses')
+@auth_bp.route('category_expenses')
 @login_required
 def category_expenses_page():
     return render_template('category_expenses.html')
 
-@auth_bp.route('/category_yearly_report')
+@auth_bp.route('category_yearly_report')
 @login_required
 def category_yearly_report():
     try:
@@ -896,7 +904,6 @@ def category_yearly_report():
             
             month_end = next_month.to_gregorian() - timedelta(days=1)
             
-            # دریافت هزینه‌های این ماه
             month_data = db.session.query(
                 func.sum(Expense.amount).label('amount'),
                 func.count(Expense.id).label('count')
@@ -958,12 +965,12 @@ def category_yearly_report():
         print(f"Error in category_yearly_report: {str(e)}")
         return jsonify({'success': False, 'message': 'خطا در پردازش درخواست'})
 
-@auth_bp.route('/job_listings')
+@auth_bp.route('job_listings')
 @login_required
 def job_listings_page():
     return render_template('job_listings.html')
 
-@auth_bp.route('/api/job_listings', methods=['GET'])
+@auth_bp.route('api/job_listings', methods=['GET'])
 @login_required
 def get_job_listings():
     try:
@@ -1050,5 +1057,115 @@ def get_job_listings():
         return jsonify({
             "success": False,
             "message": f"خطا در پردازش درخواست: {str(e)}"
+        }), 500
+
+english_bp = Blueprint('english', __name__)
+
+@english_bp.route('english-learning')
+@login_required
+def english_learning():
+    return render_template('english_learning.html')
+
+@english_bp.route('api/generate-daily-words', methods=['GET'])
+@login_required
+def generate_daily_words():
+    try:
+        # Get today's date in Tehran timezone
+        tehran_tz = pytz.timezone('Asia/Tehran')
+        today = datetime.now(tehran_tz).date()
+        
+        # Check if words already exist for today
+        existing_words = EnglishWord.query.filter(
+            func.date(EnglishWord.created_at) == today
+        ).first()
+        
+        if existing_words:
+            return jsonify({
+                'success': False,
+                'message': 'Words already generated for today'
+            })
+        
+        # Fetch new words from Gemini
+        words = fetch_words_from_gemini()
+        
+        if not words:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to generate words'
+            })
+        
+        # Save words to database
+        for word_data in words:
+            new_word = EnglishWord(
+                word=word_data['word'],
+                translation=word_data['translation'],
+                type=word_data['type'],
+                level=word_data['level'],
+                note=word_data.get('note')
+            )
+            db.session.add(new_word)
+        
+        db.session.commit()
+        
+        # Send words to Slack
+        send_daily_words_to_slack(words)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Words generated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@english_bp.route('api/words', methods=['GET'])
+@login_required
+def get_words_by_date():
+    try:
+        date_str = request.args.get('date')
+        
+        if date_str:
+            # Convert date string to datetime object
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        else:
+            # Use today's date if no date provided
+            tehran_tz = pytz.timezone('Asia/Tehran')
+            date_obj = datetime.now(tehran_tz).date()
+        
+        # Get words for the specified date
+        words = EnglishWord.query.filter(
+            func.date(EnglishWord.created_at) == date_obj
+        ).all()
+        send_daily_words_to_slack(words)
+
+        if not words:
+            return jsonify({
+                'success': True,
+                'words': []
+            })
+        
+        words_data = [{
+            'id': word.id,
+            'word': word.word,
+            'translation': word.translation,
+            'type': word.type.value,
+            'level': word.level.value,
+            'note': word.note,
+            'created_at': word.created_at.isoformat()
+        } for word in words]
+        
+        return jsonify({
+            'success': True,
+            'words': words_data
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
         }), 500
 

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseMate - Smart Expense Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        .english-card {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+        }
+        .english-card:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        }
+        .expense-card {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        .expense-card:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12 animate__animated animate__fadeIn">
+            <h1 class="text-5xl font-bold text-gray-800 mb-4">ExpenseMate</h1>
+            <p class="text-xl text-gray-600">Smart Expense Management and English Learning</p>
+        </header>
+
+        <!-- Features Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- English Learning Card -->
+            <a href="/login" class="feature-card english-card animate__animated animate__fadeIn" style="animation-delay: 0.1s">
+                <div class="p-8">
+                    <div class="flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">English Learning</h3>
+                    <p class="text-lg opacity-90">Learn new English words every day and expand your vocabulary.</p>
+                </div>
+            </a>
+
+            <!-- Expense Management Card -->
+            <a href="/dashboard" class="feature-card expense-card animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+                <div class="p-8">
+                    <div class="flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Expense Management</h3>
+                    <p class="text-lg opacity-90">Track and manage your expenses, and receive financial reports.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

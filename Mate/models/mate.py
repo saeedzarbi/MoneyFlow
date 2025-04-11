@@ -2,7 +2,7 @@ from flask_login import UserMixin
 from persiantools.jdatetime import JalaliDateTime
 from datetime import datetime
 import pytz
-from extensions import db, bcrypt
+from .extensions import db, bcrypt
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
