@@ -5,11 +5,10 @@ from dotenv import load_dotenv
 import os
 from models.mate import User
 from routes import auth_bp, english_bp
-from flask_wtf.csrf import CSRFProtect
 
 load_dotenv()
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')  # Default secret key if not in .env
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here') 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
 app.config['SLACK-HOOK'] = os.getenv('SLACK-HOOK', 'False') == 'True'
@@ -20,7 +19,6 @@ app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=3)
 db.init_app(app)
 bcrypt.init_app(app)
 login_manager.init_app(app)
-csrf = CSRFProtect(app)
 
 login_manager.login_view = "auth.login"
 login_manager.login_message = "please-login"
@@ -43,7 +41,6 @@ def create_app():
     db.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
-    csrf = CSRFProtect(app)
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/')

@@ -236,7 +236,6 @@
                 </div>
                 <div class="modal-body">
                     <form id="expenseForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="amount" class="form-label">مبلغ (تومان)</label>
                             <input type="text" class="form-control" id="amount" name="amount" required>
@@ -275,7 +274,6 @@
                 </div>
                 <div class="modal-body">
                     <form id="incomeForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
                             <input type="text" class="form-control" id="incomeAmount" name="incomeAmount" required>
