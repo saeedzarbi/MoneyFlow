@@ -236,23 +236,24 @@
                 </div>
                 <div class="modal-body">
                     <form id="expenseForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="amount" class="form-label">مبلغ (تومان)</label>
-                            <input type="text" class="form-control" id="amount" required>
+                            <input type="text" class="form-control" id="amount" name="amount" required>
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">دسته‌بندی</label>
-                            <select class="form-select" id="category" required>
+                            <select class="form-select" id="category" name="category" required>
                                 <option value="">انتخاب کنید</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="expenseDate" class="form-label">تاریخ</label>
-                            <input type="text" class="form-control" id="expenseDate" required>
+                            <input type="text" class="form-control" id="expenseDate" name="date" required>
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label">توضیحات</label>
-                            <textarea class="form-control" id="description" rows="2"></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="2"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-plus-circle me-2"></i>
@@ -274,23 +275,24 @@
                 </div>
                 <div class="modal-body">
                     <form id="incomeForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
-                            <input type="text" class="form-control" id="incomeAmount" required>
+                            <input type="text" class="form-control" id="incomeAmount" name="incomeAmount" required>
                         </div>
                         <div class="mb-3">
                             <label for="incomeCategory" class="form-label">دسته‌بندی</label>
-                            <select class="form-select" id="incomeCategory" required>
+                            <select class="form-select" id="incomeCategory" name="incomeCategory" required>
                                 <option value="">انتخاب کنید</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="incomeDate" class="form-label">تاریخ</label>
-                            <input type="text" class="form-control" id="incomeDate" required>
+                            <input type="text" class="form-control" id="incomeDate" name="date" required>
                         </div>
                         <div class="mb-3">
                             <label for="incomeDescription" class="form-label">توضیحات</label>
-                            <textarea class="form-control" id="incomeDescription" rows="2"></textarea>
+                            <textarea class="form-control" id="incomeDescription" name="incomeDescription" rows="2"></textarea>
                         </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-plus-circle me-2"></i>
