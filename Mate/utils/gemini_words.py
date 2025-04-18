@@ -40,7 +40,7 @@ Only return raw JSON. Do not include any explanation or description.
             word = item['word'].strip()
             translation = item['translation'].strip()
             note = item.get('note')
-            type_str = item.get('type', 'other').upper()
+            type_str = item.get('type', 'other').lower()
             level_str = item.get('level', 'B1').upper()
 
             try:
@@ -49,6 +49,7 @@ Only return raw JSON. Do not include any explanation or description.
                 level = WordLevel.B1
 
             try:
+                # Convert string to WordType enum
                 word_type = WordType(type_str)
             except ValueError:
                 word_type = WordType.OTHER
@@ -58,8 +59,8 @@ Only return raw JSON. Do not include any explanation or description.
                 processed_words.append({
                     'word': word,
                     'translation': translation,
-                    'type': word_type.value,
-                    'level': level.value,
+                    'type': word_type,  # Pass the enum object directly
+                    'level': level,     # Pass the enum object directly
                     'note': note
                 })
 
@@ -67,4 +68,83 @@ Only return raw JSON. Do not include any explanation or description.
 
     except Exception as e:
         print("⚠️ Error while fetching words:", e)
+        return None
+
+import os
+from openai import OpenAI
+
+# Load environment variables
+load_dotenv()
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
+
+# Configure DeepSeek client
+client = OpenAI(
+    api_key=DEEPSEEK_API_KEY,
+    base_url="https://api.deepseek.com"
+)
+
+def fetch_words_from_deepseek():
+    prompt = """
+Give me 20 English vocabulary items suitable for learners preparing for the IELTS exam.
+The words should be at A2, B1, or B2 CEFR levels (pre-intermediate to upper-intermediate), avoiding highly advanced or academic vocabulary.
+Each item must be returned in raw JSON format with the following fields:
+- "word": the English word
+- "translation": its meaning in Persian
+- "type": one of [noun, verb, adjective, adverb, preposition, conjunction, pronoun, other]
+- "level": the CEFR level (e.g., "A2", "B1", or "B2")
+- "note": (optional) a usage note or example sentence
+
+Only return raw JSON. Do not include any explanation or description.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            stream=False
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```json"):
+            content = content.replace("```json", "").replace("```", "").strip()
+
+        word_list = eval(content)
+
+        processed_words = []
+        for item in word_list:
+            word = item['word'].strip()
+            translation = item['translation'].strip()
+            note = item.get('note')
+            type_str = item.get('type', 'other').lower()
+            level_str = item.get('level', 'B1').upper()
+
+            try:
+                level = WordLevel(level_str)
+            except ValueError:
+                level = WordLevel.B1
+
+            try:
+                # Convert string to WordType enum
+                word_type = WordType(type_str)
+            except ValueError:
+                word_type = WordType.OTHER
+
+            # Prevent duplicates
+            if not EnglishWord.query.filter_by(word=word).first():
+                processed_words.append({
+                    'word': word,
+                    'translation': translation,
+                    'type': word_type,  # Pass the enum object directly
+                    'level': level,     # Pass the enum object directly
+                    'note': note
+                })
+
+        return processed_words
+
+    except Exception as e:
+        print("⚠️ Error while fetching words from DeepSeek:", e)
         return None
