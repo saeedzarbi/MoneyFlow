@@ -40,7 +40,7 @@ Only return raw JSON. Do not include any explanation or description.
             word = item['word'].strip()
             translation = item['translation'].strip()
             note = item.get('note')
-            type_str = item.get('type', 'other').lower()
+            type_str = item.get('type', 'other').upper()
             level_str = item.get('level', 'B1').upper()
 
             try:
