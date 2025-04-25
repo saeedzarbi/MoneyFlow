@@ -1129,8 +1129,9 @@ def get_words_by_date():
         date_str = request.args.get('date')
         
         if date_str:
-            # Convert date string to datetime object
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+            # Convert date string to datetime object in Tehran timezone
+            tehran_tz = pytz.timezone('Asia/Tehran')
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').replace(tzinfo=tehran_tz).date()
         else:
             # Use today's date if no date provided
             tehran_tz = pytz.timezone('Asia/Tehran')
@@ -1168,4 +1169,42 @@ def get_words_by_date():
             'success': False,
             'message': str(e)
         }), 500
+
+@auth_bp.route('/today_expenses')
+@login_required
+def today_expenses():
+    today = datetime.now().date()
+    expenses = Expense.query.filter(
+        Expense.user_id == current_user.id,
+        func.date(Expense.date) == today
+    ).order_by(Expense.date.desc()).all()
+    
+    expenses_data = [{
+        'id': expense.id,
+        'category': expense.category.name,
+        'amount': expense.amount,
+        'description': expense.description,
+        'date': expense.date.strftime('%Y-%m-%d %H:%M')
+    } for expense in expenses]
+    
+    return jsonify(expenses_data)
+
+@auth_bp.route('/today_incomes')
+@login_required
+def today_incomes():
+    today = datetime.now().date()
+    incomes = Income.query.filter(
+        Income.user_id == current_user.id,
+        func.date(Income.date) == today
+    ).order_by(Income.date.desc()).all()
+    
+    incomes_data = [{
+        'id': income.id,
+        'category': income.category.name,
+        'amount': income.amount,
+        'description': income.description,
+        'date': income.date.strftime('%Y-%m-%d %H:%M')
+    } for income in incomes]
+    
+    return jsonify(incomes_data)
 

@@ -28,6 +28,7 @@ Only return raw JSON. Do not include any explanation or description.
 
     try:
         response = model.generate_content(prompt)
+        print(response.text)
         raw_text = response.text.strip()
 
         if raw_text.startswith("```json"):

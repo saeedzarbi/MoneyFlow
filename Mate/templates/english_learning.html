@@ -67,7 +67,7 @@
             <label for="word-date" class="block text-lg font-medium text-gray-700 mb-2">📅 Select Date</label>
             <div class="flex justify-center items-center gap-4">
                 <input type="date" id="word-date" class="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:border-pink-400" />
-                <button onclick="loadWords()" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-6 rounded-lg shadow-md">Load Words</button>
+                <button id="loadWordsBtn" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-6 rounded-lg shadow-md">Load Words</button>
             </div>
         </div>
 
@@ -100,79 +100,107 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const wordsGrid = document.getElementById('wordsGrid');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const noWordsMessage = document.getElementById('noWordsMessage');
-            const errorMessage = document.getElementById('errorMessage');
-            const generateWordsBtn = document.getElementById('generateWordsBtn');
+        // Define global variables
+        const wordsGrid = document.getElementById('wordsGrid');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const noWordsMessage = document.getElementById('noWordsMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const generateWordsBtn = document.getElementById('generateWordsBtn');
+        const loadWordsBtn = document.getElementById('loadWordsBtn');
 
-            async function loadWords() {
-                try {
-                    loadingSpinner.classList.remove('hidden');
-                    wordsGrid.innerHTML = '';
-                    noWordsMessage.classList.add('hidden');
-                    errorMessage.classList.add('hidden');
+        async function loadWords() {
+            try {
+                loadingSpinner.classList.remove('hidden');
+                wordsGrid.innerHTML = '';
+                noWordsMessage.classList.add('hidden');
+                errorMessage.classList.add('hidden');
 
-                    const selectedDate = document.getElementById('word-date').value;
-                    const url = selectedDate ? `/api/words?date=${selectedDate}` : '/api/words';
+                const selectedDate = document.getElementById('word-date').value;
+                console.log('Selected date:', selectedDate); // Debug log
+                
+                // Format the date to YYYY-MM-DD if it exists
+                let url = '/api/words';
+                if (selectedDate) {
+                    // Ensure the date is in YYYY-MM-DD format
+                    const [year, month, day] = selectedDate.split('-');
+                    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    url = `/api/words?date=${formattedDate}`;
+                }
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
 
-                    const response = await fetch(url);
-                    const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data); // Debug log
 
-                    if (data.success) {
-                        if (data.words.length === 0) {
-                            noWordsMessage.classList.remove('hidden');
-                        } else {
-                            data.words.forEach((word, index) => {
-                                const wordCard = document.createElement('div');
-                                wordCard.className = 'word-card animate__animated animate__fadeInUp';
-                                wordCard.style.animationDelay = `${index * 0.1}s`;
-                                wordCard.innerHTML = `
-                                    <div class="p-6">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <span class="word-type-badge">${word.type}</span>
-                                            <span class="level-badge">${word.level}</span>
-                                        </div>
-                                        <h3 class="word mb-2">${word.word}</h3>
-                                        <p class="translation mb-4">${word.translation}</p>
-                                        ${word.note ? `<p class="note">${word.note}</p>` : ''}
+                if (data.success) {
+                    if (data.words.length === 0) {
+                        noWordsMessage.classList.remove('hidden');
+                    } else {
+                        data.words.forEach((word, index) => {
+                            const wordCard = document.createElement('div');
+                            wordCard.className = 'word-card animate__animated animate__fadeInUp';
+                            wordCard.style.animationDelay = `${index * 0.1}s`;
+                            wordCard.innerHTML = `
+                                <div class="p-6">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <span class="word-type-badge">${word.type}</span>
+                                        <span class="level-badge">${word.level}</span>
                                     </div>
-                                `;
-                                wordsGrid.appendChild(wordCard);
-                            });
-                        }
-                    } else {
-                        errorMessage.classList.remove('hidden');
+                                    <h3 class="word mb-2">${word.word}</h3>
+                                    <p class="translation mb-4">${word.translation}</p>
+                                    ${word.note ? `<p class="note">${word.note}</p>` : ''}
+                                </div>
+                            `;
+                            wordsGrid.appendChild(wordCard);
+                        });
                     }
-                } catch (error) {
-                    console.error('Error loading words:', error);
+                } else {
                     errorMessage.classList.remove('hidden');
-                } finally {
-                    loadingSpinner.classList.add('hidden');
+                    console.error('Error from server:', data.message);
                 }
+            } catch (error) {
+                console.error('Error loading words:', error);
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loadingSpinner.classList.add('hidden');
             }
+        }
 
-            async function generateNewWords() {
-                try {
-                    loadingSpinner.classList.remove('hidden');
-                    const response = await fetch('/api/generate-daily-words');
-                    const data = await response.json();
+        async function generateNewWords() {
+            try {
+                loadingSpinner.classList.remove('hidden');
+                const response = await fetch('/api/generate-daily-words');
+                const data = await response.json();
 
-                    if (data.success) {
-                        await loadWords();
-                    } else {
-                        alert(data.message || 'Failed to generate new words');
-                    }
-                } catch (error) {
-                    console.error('Error generating words:', error);
-                    alert('An error occurred while generating new words');
-                } finally {
-                    loadingSpinner.classList.add('hidden');
+                if (data.success) {
+                    await loadWords();
+                } else {
+                    alert(data.message || 'Failed to generate new words');
                 }
+            } catch (error) {
+                console.error('Error generating words:', error);
+                alert('An error occurred while generating new words');
+            } finally {
+                loadingSpinner.classList.add('hidden');
             }
+        }
 
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWordsBtn.addEventListener('click', loadWords);
             generateWordsBtn.addEventListener('click', generateNewWords);
+            // Load initial words
             loadWords();
         });
     </script>

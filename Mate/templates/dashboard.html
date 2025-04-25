@@ -156,6 +156,12 @@
                 <button class="btn btn-info text-white m-1" onclick="showAddIncomeCategoryModal()">
                     <i class="fas fa-folder-plus btn-icon"></i>افزودن دسته‌بندی درآمد
                 </button>
+                <button class="btn btn-warning m-1" data-bs-toggle="modal" data-bs-target="#todayExpensesModal">
+                    <i class="fas fa-list btn-icon"></i>هزینه‌های امروز
+                </button>
+                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#todayIncomesModal">
+                    <i class="fas fa-list btn-icon"></i>درآمدهای امروز
+                </button>
             </div>
         </div>
 
@@ -349,12 +355,71 @@
         </div>
     </div>
 
+    <!-- Today's Expenses Modal -->
+    <div class="modal fade" id="todayExpensesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">هزینه‌های امروز</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>دسته‌بندی</th>
+                                    <th>مبلغ</th>
+                                    <th>توضیحات</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="todayExpensesList">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Incomes Modal -->
+    <div class="modal fade" id="todayIncomesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">درآمدهای امروز</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>دسته‌بندی</th>
+                                    <th>مبلغ</th>
+                                    <th>توضیحات</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="todayIncomesList">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
     <script src="{{ url_for('static', filename='js/action-submit.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
     <script>
         // Format amount inputs on input
@@ -475,6 +540,107 @@
         // Call loadCategories when the page loads
         $(document).ready(function() {
             loadCategories();
+        });
+
+        // Function to load today's expenses
+        function loadTodayExpenses() {
+            $.get('/today_expenses', function(response) {
+                if (response.success) {
+                    const tbody = document.getElementById('todayExpensesList');
+                    tbody.innerHTML = '';
+                    response.expenses.forEach(expense => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${expense.category_name}</td>
+                            <td>${formatNumber(expense.amount)} تومان</td>
+                            <td>${expense.description || '-'}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteExpense(${expense.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+        }
+
+        // Function to load today's incomes
+        function loadTodayIncomes() {
+            $.get('/today_incomes', function(response) {
+                if (response.success) {
+                    const tbody = document.getElementById('todayIncomesList');
+                    tbody.innerHTML = '';
+                    response.incomes.forEach(income => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${income.category_name}</td>
+                            <td>${formatNumber(income.amount)} تومان</td>
+                            <td>${income.description || '-'}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteIncome(${income.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+        }
+
+        // Function to delete expense
+        function deleteExpense(expenseId) {
+            if (confirm('آیا از حذف این هزینه اطمینان دارید؟')) {
+                $.ajax({
+                    url: `/detail/${expenseId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            loadTodayExpenses();
+                            loadRecentTransactions();
+                            updateDashboardStats();
+                        } else {
+                            alert('خطا در حذف هزینه: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('خطا در ارتباط با سرور');
+                    }
+                });
+            }
+        }
+
+        // Function to delete income
+        function deleteIncome(incomeId) {
+            if (confirm('آیا از حذف این درآمد اطمینان دارید؟')) {
+                $.ajax({
+                    url: `/income/detail/${incomeId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            loadTodayIncomes();
+                            loadRecentTransactions();
+                            updateDashboardStats();
+                        } else {
+                            alert('خطا در حذف درآمد: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('خطا در ارتباط با سرور');
+                    }
+                });
+            }
+        }
+
+        // Add event listeners for modals
+        $('#todayExpensesModal').on('show.bs.modal', function() {
+            loadTodayExpenses();
+        });
+
+        $('#todayIncomesModal').on('show.bs.modal', function() {
+            loadTodayIncomes();
         });
     </script>
 </body>
