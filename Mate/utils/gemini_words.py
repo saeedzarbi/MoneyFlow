@@ -14,8 +14,14 @@ genai.configure(api_key=GEMINI_API_KEY)
 def fetch_words_from_gemini():
     model = genai.GenerativeModel('gemini-1.5-flash')
     prompt = """
-Give me 20 English vocabulary items suitable for learners preparing for the IELTS exam.
+Give me 20 diverse and unique English vocabulary items that are high-frequency and commonly used in IELTS exams.
 The words should be at A2, B1, or B2 CEFR levels (pre-intermediate to upper-intermediate), avoiding highly advanced or academic vocabulary.
+IMPORTANT: 
+1. Focus on words that frequently appear in IELTS reading, writing, and speaking sections
+2. Ensure each word is unique and different from common, everyday words
+3. Avoid basic words like "house", "car", "book", etc.
+4. Prioritize words that are commonly tested in IELTS vocabulary sections
+
 Each item must be returned in raw JSON format with the following fields:
 - "word": the English word
 - "translation": its meaning in Persian
