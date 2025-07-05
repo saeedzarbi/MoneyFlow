@@ -1,5 +1,5 @@
 from app import create_app
-from models.extensions import db
+from models.extensions import bcrypt, db
 from models.mate import User
 
 def create_user(email, password, username):

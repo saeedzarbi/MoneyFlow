@@ -4,13 +4,14 @@ from flask_login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, RegistrationForm
 from flask import render_template, request, jsonify
 from models.mate import Expense, Category, User, IncomeCategory, Income
+from models.telegram_bot import TelegramUser
 import jdatetime
 from datetime import timedelta, datetime
 from persiantools.jdatetime import JalaliDate
 import requests
 import os
 from dotenv import load_dotenv
-from sqlalchemy import func, extract
+from sqlalchemy import func
 from models.english_word import EnglishWord
 import pytz
 from utils.gemini_words import fetch_words_from_gemini
@@ -235,7 +236,6 @@ def get_monthly_report():
         current_year = today_shamsi.year
         current_month = today_shamsi.month
 
-        # تبدیل تاریخ شمسی به میلادی برای فیلتر کردن رکوردهای دیتابیس
         start_date = jdatetime.date(current_year, current_month, 1).togregorian()
         if current_month == 12:
             end_date = jdatetime.date(current_year + 1, 1, 1).togregorian()
@@ -1208,3 +1208,23 @@ def today_incomes():
     
     return jsonify(incomes_data)
 
+@auth_bp.route('/add_telegram_user', methods=['POST'])
+def add_telegram_user():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    username = data.get('username')
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'user_id is required'}), 400
+    user = db.session.query(TelegramUser).filter_by(user_id=user_id).first()
+    if user:
+        return jsonify({'success': False, 'message': 'User already exists'}), 400
+    new_user = TelegramUser(user_id=user_id, username=username, first_name=first_name, last_name=last_name)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'User added successfully'})
+
+@auth_bp.route('/add_telegram_user_form', methods=['GET'])
+def add_telegram_user_form():
+    return render_template('add_telegram_user.html')
