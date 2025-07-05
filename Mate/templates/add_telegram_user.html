@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}افزودن کاربر تلگرام{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">افزودن کاربر تلگرام</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/add_telegram_user">
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">User ID</label>
+                            <input type="text" class="form-control" id="user_id" name="user_id" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username">
+                        </div>
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">افزودن</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const data = {
+            user_id: document.getElementById('user_id').value,
+            username: document.getElementById('username').value,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value
+        };
+        fetch('/add_telegram_user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if(result.success) {
+                form.reset();
+            }
+        })
+        .catch(error => {
+            alert('خطا در ارسال اطلاعات');
+        });
+    });
+});
+</script>
+{% endblock %} 

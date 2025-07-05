@@ -45,7 +45,8 @@ def create_app():
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(english_bp, url_prefix='/')
-    
+    # app.register_blueprint(bp_telegram, url_prefix='/')
+
     return app
 
 if __name__ == '__main__':

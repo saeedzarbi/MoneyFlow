@@ -2,7 +2,6 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from models.english_word import EnglishWord, WordType, WordLevel
-from models.extensions import db
 
 # Load environment variables
 load_dotenv()
@@ -76,3 +75,5 @@ Only return raw JSON. Do not include any explanation or description.
     except Exception as e:
         print("⚠️ Error while fetching words:", e)
         return None
+
+
