@@ -1,0 +1,22 @@
+[Unit]
+Description=ExpenseMate (Gunicorn)
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/MoneyFlow/Mate
+EnvironmentFile=/root/MoneyFlow/.env
+Environment="PATH=/root/MoneyFlow/venv/bin"
+ExecStart=/root/MoneyFlow/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/log/mate/access.log \
+    --error-logfile /var/log/mate/error.log \
+    --capture-output \
+    wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
