@@ -8,10 +8,11 @@ from routes import auth_bp, english_bp
 
 load_dotenv()
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here') 
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
-app.config['SLACK-HOOK'] = os.getenv('SLACK-HOOK', 'False') == 'True'
+app.config['TELEGRAM_BOT_TOKEN'] = os.getenv('TELEGRAM_BOT_TOKEN', '')
+app.config['TELEGRAM_CHAT_IDS'] = os.getenv('TELEGRAM_CHAT_IDS', '')
 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=3)
 
@@ -36,22 +37,25 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///site.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['TELEGRAM_BOT_TOKEN'] = os.getenv('TELEGRAM_BOT_TOKEN', '')
+    app.config['TELEGRAM_CHAT_IDS'] = os.getenv('TELEGRAM_CHAT_IDS', '')
 
     # Initialize extensions
     db.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
-    
+
+    login_manager.login_view = "auth.login"
+    login_manager.login_message = "please-login"
+
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(english_bp, url_prefix='/')
-    # app.register_blueprint(bp_telegram, url_prefix='/')
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
     with app.app_context():
-            db.create_all()
+        db.create_all()
     app.run(debug=True)
-

@@ -1,498 +1,472 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد مدیریت هزینه</title>
-    <!-- Bootstrap RTL CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Persian Date Picker -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Tahoma', sans-serif;
-        }
-        .dashboard-stats {
-            margin-bottom: 2rem;
-        }
-        .card {
-            margin-bottom: 1rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        }
-        .btn-icon {
-            margin-right: 0.5rem;
-        }
-        .stats-card {
-            transition: transform 0.2s;
-        }
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-        .category-badge {
-            position: relative;
-            padding-right: 25px !important;
-        }
-        .delete-category {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-            padding: 0 5px;
-            font-size: 1.2em;
-        }
-        .delete-category:hover {
-            color: #c82333;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">ExpenseMate</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.dashboard') }}">داشبورد</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.report') }}">گزارش‌ها</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.analytics') }}">تحلیل‌ها</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.logout') }}">خروج</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container mt-4">
-        <!-- Quick Stats -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white stats-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">هزینه این ماه</h6>
-                                <h3 class="mt-2 mb-0" id="monthlyExpense">0 تومان</h3>
-                            </div>
-                            <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
-                        </div>
+{% block title %}داشبورد مدیریت هزینه{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card text-white stats-card" style="background: linear-gradient(135deg, #1d4f91, #2a6fbf);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h6 class="card-title mb-1 opacity-75">هزینه این ماه</h6>
+                        <div class="stat-value fw-bold" id="monthlyExpense">0 تومان</div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white stats-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">درآمد این ماه</h6>
-                                <h3 class="mt-2 mb-0" id="monthlyIncome">0 تومان</h3>
-                            </div>
-                            <i class="fas fa-coins fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white stats-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">تعداد تراکنش‌ها</h6>
-                                <h3 class="mt-2 mb-0" id="transactionCount">0</h3>
-                            </div>
-                            <i class="fas fa-receipt fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-dark stats-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-0">باقیمانده</h6>
-                                <h3 class="mt-2 mb-0" id="remainingBudget">0 تومان</h3>
-                            </div>
-                            <i class="fas fa-wallet fa-2x opacity-50"></i>
-                        </div>
-                    </div>
+                    <i class="fas fa-money-bill-wave fa-lg opacity-50 mt-1"></i>
                 </div>
             </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="row mb-4">
-            <div class="col-md-12 text-center">
-                <button class="btn btn-danger m-1" data-bs-toggle="modal" data-bs-target="#expenseModal">
-                    <i class="fas fa-plus-circle btn-icon"></i>افزودن هزینه جدید
-                </button>
-                <button class="btn btn-success m-1" data-bs-toggle="modal" data-bs-target="#incomeModal">
-                    <i class="fas fa-plus-circle btn-icon"></i>افزودن درآمد جدید
-                </button>
-                <button class="btn btn-dark m-1" onclick="showAddExpenseCategoryModal()">
-                    <i class="fas fa-folder-plus btn-icon"></i>افزودن دسته‌بندی هزینه
-                </button>
-                <button class="btn btn-info text-white m-1" onclick="showAddIncomeCategoryModal()">
-                    <i class="fas fa-folder-plus btn-icon"></i>افزودن دسته‌بندی درآمد
-                </button>
-                <button class="btn btn-warning m-1" data-bs-toggle="modal" data-bs-target="#todayExpensesModal">
-                    <i class="fas fa-list btn-icon"></i>هزینه‌های امروز
-                </button>
-                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#todayIncomesModal">
-                    <i class="fas fa-list btn-icon"></i>درآمدهای امروز
-                </button>
-                <button class="btn btn-secondary m-1" onclick="window.location.href='/add_telegram_user_form'">
-                    <i class="fab fa-telegram btn-icon"></i>تعریف کاربر تلگرام
-                </button>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card text-white stats-card" style="background: linear-gradient(135deg, #1f7a4d, #2f9e66);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h6 class="card-title mb-1 opacity-75">درآمد این ماه</h6>
+                        <div class="stat-value fw-bold" id="monthlyIncome">0 تومان</div>
+                    </div>
+                    <i class="fas fa-coins fa-lg opacity-50 mt-1"></i>
+                </div>
             </div>
         </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card text-white stats-card" style="background: linear-gradient(135deg, #0e7490, #0891b2);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h6 class="card-title mb-1 opacity-75">تعداد تراکنش‌ها</h6>
+                        <div class="stat-value fw-bold" id="transactionCount">0</div>
+                    </div>
+                    <i class="fas fa-receipt fa-lg opacity-50 mt-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card text-dark stats-card" style="background: linear-gradient(135deg, #f0c14b, #e0a800);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h6 class="card-title mb-1">باقیمانده</h6>
+                        <div class="stat-value fw-bold" id="remainingBudget">0 تومان</div>
+                    </div>
+                    <i class="fas fa-wallet fa-lg opacity-50 mt-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        <!-- Recent Transactions -->
-        <div class="card mb-4">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">تراکنش‌های اخیر</h5>
-                <button class="btn btn-outline-light btn-sm" onclick="loadRecentTransactions()">
-                    <i class="fas fa-sync-alt"></i>
+<div class="action-toolbar mb-4">
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#expenseModal">
+        <i class="fas fa-plus-circle btn-icon"></i>هزینه جدید
+    </button>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#incomeModal">
+        <i class="fas fa-plus-circle btn-icon"></i>درآمد جدید
+    </button>
+    <button class="btn btn-dark" onclick="showAddExpenseCategoryModal()">
+        <i class="fas fa-folder-plus btn-icon"></i>دسته هزینه
+    </button>
+    <button class="btn btn-info text-white" onclick="showAddIncomeCategoryModal()">
+        <i class="fas fa-folder-plus btn-icon"></i>دسته درآمد
+    </button>
+    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#todayExpensesModal">
+        <i class="fas fa-list btn-icon"></i>هزینه امروز
+    </button>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#todayIncomesModal">
+        <i class="fas fa-list btn-icon"></i>درآمد امروز
+    </button>
+    <button class="btn btn-secondary" onclick="window.location.href='{{ url_for('auth.add_telegram_user_form') }}'">
+        <i class="fab fa-telegram btn-icon"></i>کاربر تلگرام
+    </button>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">تراکنش‌های اخیر</h5>
+        <button class="btn btn-outline-light btn-sm" onclick="loadRecentTransactions()" title="بروزرسانی">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    <div class="card-body p-0 p-sm-3">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>نوع</th>
+                        <th>دسته‌بندی</th>
+                        <th>مبلغ</th>
+                        <th class="d-none d-md-table-cell">توضیحات</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="recentTransactions"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">دسته‌بندی‌های هزینه</h5>
+                <button class="btn btn-outline-light btn-sm" onclick="showAddExpenseCategoryModal()">
+                    <i class="fas fa-plus"></i>
                 </button>
             </div>
             <div class="card-body">
+                <div id="expenseCategories" class="d-flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(90deg, #1f7a4d, #16633d);">
+                <h5 class="mb-0">دسته‌بندی‌های درآمد</h5>
+                <button class="btn btn-outline-light btn-sm" onclick="showAddIncomeCategoryModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="incomeCategories" class="d-flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal fade" id="expenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">افزودن هزینه جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                <form id="expenseForm">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">مبلغ (تومان)</label>
+                        <input type="text" class="form-control" id="amount" name="amount" inputmode="numeric" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">دسته‌بندی</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">انتخاب کنید</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expenseDate" class="form-label">تاریخ</label>
+                        <input type="text" class="form-control" id="expenseDate" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">توضیحات</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle ms-1"></i>ثبت هزینه
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Income Modal -->
+<div class="modal fade" id="incomeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(90deg, #1f7a4d, #16633d);">
+                <h5 class="modal-title">افزودن درآمد جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                <form id="incomeForm">
+                    <div class="mb-3">
+                        <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
+                        <input type="text" class="form-control" id="incomeAmount" name="incomeAmount" inputmode="numeric" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="incomeCategory" class="form-label">دسته‌بندی</label>
+                        <select class="form-select" id="incomeCategory" name="incomeCategory" required>
+                            <option value="">انتخاب کنید</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="incomeDate" class="form-label">تاریخ</label>
+                        <input type="text" class="form-control" id="incomeDate" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="incomeDescription" class="form-label">توضیحات</label>
+                        <textarea class="form-control" id="incomeDescription" name="incomeDescription" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-plus-circle ms-1"></i>ثبت درآمد
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addExpenseCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">افزودن دسته‌بندی هزینه</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addExpenseCategoryForm">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">نام دسته‌بندی</label>
+                        <input type="text" class="form-control" id="categoryName" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">ثبت دسته‌بندی</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addIncomeCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(90deg, #1f7a4d, #16633d);">
+                <h5 class="modal-title">افزودن دسته‌بندی درآمد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addIncomeCategoryForm">
+                    <div class="mb-3">
+                        <label for="incomeCategoryName" class="form-label">نام دسته‌بندی</label>
+                        <input type="text" class="form-control" id="incomeCategoryName" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">ثبت دسته‌بندی</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="todayExpensesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">هزینه‌های امروز</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+            <div class="modal-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>تاریخ</th>
-                                <th>نوع</th>
                                 <th>دسته‌بندی</th>
                                 <th>مبلغ</th>
-                                <th>توضیحات</th>
+                                <th class="d-none d-sm-table-cell">توضیحات</th>
                                 <th>عملیات</th>
                             </tr>
                         </thead>
-                        <tbody id="recentTransactions">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
+                        <tbody id="todayExpensesList"></tbody>
                     </table>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Category Management -->
-        <div class="row">
-            <!-- Expense Categories -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">دسته‌بندی‌های هزینه</h5>
-                        <button class="btn btn-outline-light btn-sm" onclick="showAddExpenseCategoryModal()">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="expenseCategories" class="d-flex flex-wrap gap-2">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
+<div class="modal fade" id="todayIncomesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(90deg, #1f7a4d, #16633d);">
+                <h5 class="modal-title">درآمدهای امروز</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
             </div>
-
-            <!-- Income Categories -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">دسته‌بندی‌های درآمد</h5>
-                        <button class="btn btn-outline-light btn-sm" onclick="showAddIncomeCategoryModal()">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="incomeCategories" class="d-flex flex-wrap gap-2">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>دسته‌بندی</th>
+                                <th>مبلغ</th>
+                                <th class="d-none d-sm-table-cell">توضیحات</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="todayIncomesList"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Expense Modal -->
-    <div class="modal fade" id="expenseModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">افزودن هزینه جدید</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="expenseForm">
-                        <div class="mb-3">
-                            <label for="amount" class="form-label">مبلغ (تومان)</label>
-                            <input type="text" class="form-control" id="amount" name="amount" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="category" class="form-label">دسته‌بندی</label>
-                            <select class="form-select" id="category" name="category" required>
-                                <option value="">انتخاب کنید</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="expenseDate" class="form-label">تاریخ</label>
-                            <input type="text" class="form-control" id="expenseDate" name="date" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="description" class="form-label">توضیحات</label>
-                            <textarea class="form-control" id="description" name="description" rows="2"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            ثبت هزینه
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script src="{{ url_for('static', filename='js/action-submit.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    $('#amount, #incomeAmount').on('input', function() {
+        let value = this.value.replace(/,/g, '');
+        if (value) {
+            this.value = formatNumber(value);
+        }
+    });
 
-    <!-- Income Modal -->
-    <div class="modal fade" id="incomeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">افزودن درآمد جدید</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="incomeForm">
-                        <div class="mb-3">
-                            <label for="incomeAmount" class="form-label">مبلغ (تومان)</label>
-                            <input type="text" class="form-control" id="incomeAmount" name="incomeAmount" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="incomeCategory" class="form-label">دسته‌بندی</label>
-                            <select class="form-select" id="incomeCategory" name="incomeCategory" required>
-                                <option value="">انتخاب کنید</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="incomeDate" class="form-label">تاریخ</label>
-                            <input type="text" class="form-control" id="incomeDate" name="date" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="incomeDescription" class="form-label">توضیحات</label>
-                            <textarea class="form-control" id="incomeDescription" name="incomeDescription" rows="2"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            ثبت درآمد
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    $('#expenseForm').on('submit', function() {
+        let amountInput = $('#amount');
+        amountInput.val(amountInput.val().replace(/,/g, ''));
+    });
 
-    <!-- Add Category Modals -->
-    <div class="modal fade" id="addExpenseCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">افزودن دسته‌بندی هزینه</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addExpenseCategoryForm">
-                        <div class="mb-3">
-                            <label for="categoryName" class="form-label">نام دسته‌بندی</label>
-                            <input type="text" class="form-control" id="categoryName" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            ثبت دسته‌بندی
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    $('#incomeForm').on('submit', function() {
+        let amountInput = $('#incomeAmount');
+        amountInput.val(amountInput.val().replace(/,/g, ''));
+    });
 
-    <div class="modal fade" id="addIncomeCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">افزودن دسته‌بندی درآمد</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addIncomeCategoryForm">
-                        <div class="mb-3">
-                            <label for="incomeCategoryName" class="form-label">نام دسته‌بندی</label>
-                            <input type="text" class="form-control" id="incomeCategoryName" required>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            ثبت دسته‌بندی
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
 
-    <!-- Today's Expenses Modal -->
-    <div class="modal fade" id="todayExpensesModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">هزینه‌های امروز</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>دسته‌بندی</th>
-                                    <th>مبلغ</th>
-                                    <th>توضیحات</th>
-                                    <th>عملیات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="todayExpensesList">
-                                <!-- Will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    function createCategoryBadge(category, type) {
+        const badge = document.createElement('span');
+        badge.className = `badge bg-${type === 'expense' ? 'primary' : 'success'} category-badge m-1`;
+        badge.textContent = category.name;
 
-    <!-- Today's Incomes Modal -->
-    <div class="modal fade" id="todayIncomesModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">درآمدهای امروز</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>دسته‌بندی</th>
-                                    <th>مبلغ</th>
-                                    <th>توضیحات</th>
-                                    <th>عملیات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="todayIncomesList">
-                                <!-- Will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-category';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = 'حذف دسته‌بندی';
+        deleteBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (confirm(`آیا از حذف دسته‌بندی "${category.name}" اطمینان دارید؟`)) {
+                deleteCategory(category.id, type);
+            }
+        };
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-    <script src="{{ url_for('static', filename='js/action-submit.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+        badge.appendChild(deleteBtn);
+        return badge;
+    }
 
-    <script>
-        // Format amount inputs on input
-        $('#amount, #incomeAmount').on('input', function() {
-            let value = this.value.replace(/,/g, '');
-            if (value) {
-                this.value = formatNumber(value);
+    function deleteCategory(categoryId, type) {
+        const url = type === 'expense' ? '/delete_expense_category' : '/delete_income_category';
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: JSON.stringify({ category_id: categoryId }),
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.success) {
+                    loadCategories();
+                } else {
+                    alert('خطا در حذف دسته‌بندی: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+            }
+        });
+    }
+
+    function loadCategories() {
+        $.get('/get_categories', function(response) {
+            if (response.success) {
+                const container = document.getElementById('expenseCategories');
+                container.innerHTML = '';
+                response.categories.forEach(category => {
+                    container.appendChild(createCategoryBadge(category, 'expense'));
+                });
+
+                const select = document.getElementById('category');
+                select.innerHTML = '<option value="">انتخاب کنید</option>';
+                response.categories.forEach(category => {
+                    select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                });
             }
         });
 
-        // Before form submission, unformat the numbers
-        $('#expenseForm').on('submit', function() {
-            let amountInput = $('#amount');
-            amountInput.val(amountInput.val().replace(/,/g, ''));
+        $.get('/get_income_categories', function(response) {
+            if (response.success) {
+                const container = document.getElementById('incomeCategories');
+                container.innerHTML = '';
+                response.categories.forEach(category => {
+                    container.appendChild(createCategoryBadge(category, 'income'));
+                });
+
+                const select = document.getElementById('incomeCategory');
+                select.innerHTML = '<option value="">انتخاب کنید</option>';
+                response.categories.forEach(category => {
+                    select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                });
+            }
         });
+    }
 
-        $('#incomeForm').on('submit', function() {
-            let amountInput = $('#incomeAmount');
-            amountInput.val(amountInput.val().replace(/,/g, ''));
+    function loadTodayExpenses() {
+        $.get('/today_expenses', function(response) {
+            if (response.success) {
+                const tbody = document.getElementById('todayExpensesList');
+                tbody.innerHTML = '';
+                response.expenses.forEach(expense => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${expense.category_name}</td>
+                        <td>${formatNumber(expense.amount)} تومان</td>
+                        <td class="d-none d-sm-table-cell">${expense.description || '-'}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteExpense(${expense.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
         });
+    }
 
-        // Helper function to format numbers with commas
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
+    function loadTodayIncomes() {
+        $.get('/today_incomes', function(response) {
+            if (response.success) {
+                const tbody = document.getElementById('todayIncomesList');
+                tbody.innerHTML = '';
+                response.incomes.forEach(income => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${income.category_name}</td>
+                        <td>${formatNumber(income.amount)} تومان</td>
+                        <td class="d-none d-sm-table-cell">${income.description || '-'}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteIncome(${income.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        });
+    }
 
-        // Function to create category badge with delete button
-        function createCategoryBadge(category, type) {
-            const badge = document.createElement('span');
-            badge.className = `badge bg-${type === 'expense' ? 'primary' : 'success'} category-badge m-1`;
-            badge.textContent = category.name;
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-category';
-            deleteBtn.innerHTML = '×';
-            deleteBtn.title = 'حذف دسته‌بندی';
-            deleteBtn.onclick = function(e) {
-                e.stopPropagation();
-                if (confirm(`آیا از حذف دسته‌بندی "${category.name}" اطمینان دارید؟`)) {
-                    deleteCategory(category.id, type);
-                }
-            };
-            
-            badge.appendChild(deleteBtn);
-            return badge;
-        }
-
-        // Function to delete category
-        function deleteCategory(categoryId, type) {
-            const url = type === 'expense' ? '/delete_expense_category' : '/delete_income_category';
+    function deleteExpense(expenseId) {
+        if (confirm('آیا از حذف این هزینه اطمینان دارید؟')) {
             $.ajax({
-                url: url,
-                type: 'POST',
-                data: JSON.stringify({ category_id: categoryId }),
-                contentType: 'application/json',
+                url: `/detail/${expenseId}`,
+                type: 'DELETE',
                 success: function(response) {
                     if (response.success) {
-                        // Remove the category badge from the UI
-                        const container = document.getElementById(`${type}Categories`);
-                        const badges = container.getElementsByClassName('category-badge');
-                        for (let badge of badges) {
-                            if (badge.textContent.includes(categoryId)) {
-                                badge.remove();
-                                break;
-                            }
-                        }
-                        // Refresh the category select in the form
-                        loadCategories();
+                        loadTodayExpenses();
+                        loadRecentTransactions();
+                        updateDashboardStats();
                     } else {
-                        alert('خطا در حذف دسته‌بندی: ' + response.message);
+                        alert('خطا در حذف هزینه: ' + response.message);
                     }
                 },
                 error: function() {
@@ -500,151 +474,39 @@
                 }
             });
         }
+    }
 
-        // Modify your existing loadCategories function to use the new createCategoryBadge function
-        function loadCategories() {
-            // Load expense categories
-            $.get('/get_categories', function(response) {
-                if (response.success) {
-                    const container = document.getElementById('expenseCategories');
-                    container.innerHTML = '';
-                    response.categories.forEach(category => {
-                        container.appendChild(createCategoryBadge(category, 'expense'));
-                    });
-                    
-                    // Update expense category select
-                    const select = document.getElementById('category');
-                    select.innerHTML = '<option value="">انتخاب کنید</option>';
-                    response.categories.forEach(category => {
-                        select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-                    });
-                }
-            });
-
-            // Load income categories
-            $.get('/get_income_categories', function(response) {
-                if (response.success) {
-                    const container = document.getElementById('incomeCategories');
-                    container.innerHTML = '';
-                    response.categories.forEach(category => {
-                        container.appendChild(createCategoryBadge(category, 'income'));
-                    });
-                    
-                    // Update income category select
-                    const select = document.getElementById('incomeCategory');
-                    select.innerHTML = '<option value="">انتخاب کنید</option>';
-                    response.categories.forEach(category => {
-                        select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-                    });
-                }
-            });
-        }
-
-        // Call loadCategories when the page loads
-        $(document).ready(function() {
-            loadCategories();
-        });
-
-        // Function to load today's expenses
-        function loadTodayExpenses() {
-            $.get('/today_expenses', function(response) {
-                if (response.success) {
-                    const tbody = document.getElementById('todayExpensesList');
-                    tbody.innerHTML = '';
-                    response.expenses.forEach(expense => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${expense.category_name}</td>
-                            <td>${formatNumber(expense.amount)} تومان</td>
-                            <td>${expense.description || '-'}</td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" onclick="deleteExpense(${expense.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            });
-        }
-
-        // Function to load today's incomes
-        function loadTodayIncomes() {
-            $.get('/today_incomes', function(response) {
-                if (response.success) {
-                    const tbody = document.getElementById('todayIncomesList');
-                    tbody.innerHTML = '';
-                    response.incomes.forEach(income => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${income.category_name}</td>
-                            <td>${formatNumber(income.amount)} تومان</td>
-                            <td>${income.description || '-'}</td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" onclick="deleteIncome(${income.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            });
-        }
-
-        // Function to delete expense
-        function deleteExpense(expenseId) {
-            if (confirm('آیا از حذف این هزینه اطمینان دارید؟')) {
-                $.ajax({
-                    url: `/detail/${expenseId}`,
-                    type: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            loadTodayExpenses();
-                            loadRecentTransactions();
-                            updateDashboardStats();
-                        } else {
-                            alert('خطا در حذف هزینه: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('خطا در ارتباط با سرور');
+    function deleteIncome(incomeId) {
+        if (confirm('آیا از حذف این درآمد اطمینان دارید؟')) {
+            $.ajax({
+                url: `/income/detail/${incomeId}`,
+                type: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        loadTodayIncomes();
+                        loadRecentTransactions();
+                        updateDashboardStats();
+                    } else {
+                        alert('خطا در حذف درآمد: ' + response.message);
                     }
-                });
-            }
+                },
+                error: function() {
+                    alert('خطا در ارتباط با سرور');
+                }
+            });
         }
+    }
 
-        // Function to delete income
-        function deleteIncome(incomeId) {
-            if (confirm('آیا از حذف این درآمد اطمینان دارید؟')) {
-                $.ajax({
-                    url: `/income/detail/${incomeId}`,
-                    type: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            loadTodayIncomes();
-                            loadRecentTransactions();
-                            updateDashboardStats();
-                        } else {
-                            alert('خطا در حذف درآمد: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('خطا در ارتباط با سرور');
-                    }
-                });
-            }
-        }
+    $(document).ready(function() {
+        loadCategories();
+    });
 
-        // Add event listeners for modals
-        $('#todayExpensesModal').on('show.bs.modal', function() {
-            loadTodayExpenses();
-        });
+    $('#todayExpensesModal').on('show.bs.modal', function() {
+        loadTodayExpenses();
+    });
 
-        $('#todayIncomesModal').on('show.bs.modal', function() {
-            loadTodayIncomes();
-        });
-    </script>
-</body>
-</html>
+    $('#todayIncomesModal').on('show.bs.modal', function() {
+        loadTodayIncomes();
+    });
+</script>
+{% endblock %}

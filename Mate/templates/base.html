@@ -4,67 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ExpenseMate{% endblock %}</title>
-    
-    <!-- Bootstrap RTL -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-app sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('auth.dashboard') }}">
-                <i class="fas fa-wallet me-2"></i>ExpenseMate
+                <i class="fas fa-wallet ms-2"></i>ExpenseMate
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="منو">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.dashboard') }}">
-                            <i class="fas fa-chart-line me-2"></i>داشبورد
+                            <i class="fas fa-chart-line ms-1"></i>داشبورد
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('english.english_learning') }}">
-                            <i class="fas fa-language me-2"></i>یادگیری انگلیسی
+                            <i class="fas fa-language ms-1"></i>یادگیری انگلیسی
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.job_listings_page') }}">
-                            <i class="fas fa-briefcase me-2"></i>آگهی‌های شغلی
+                            <i class="fas fa-briefcase ms-1"></i>آگهی‌های شغلی
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.report') }}">
-                            <i class="fas fa-chart-bar me-1"></i>گزارشات
+                            <i class="fas fa-chart-bar ms-1"></i>گزارشات
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.analytics') }}">
-                            <i class="fas fa-chart-line me-1"></i>تحلیل‌ها
+                            <i class="fas fa-chart-pie ms-1"></i>تحلیل‌ها
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.category_expenses_page') }}">
-                            <i class="fas fa-search me-1"></i>جستجوی هزینه‌ها
+                            <i class="fas fa-search ms-1"></i>جستجوی هزینه
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/add_telegram_user_form">
-                            <i class="fab fa-telegram me-2"></i>افزودن کاربر تلگرام
+                        <a class="nav-link" href="{{ url_for('auth.add_telegram_user_form') }}">
+                            <i class="fab fa-telegram ms-1"></i>کاربر تلگرام
                         </a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.logout') }}">
-                            <i class="fas fa-sign-out-alt me-1"></i>خروج
+                            <i class="fas fa-sign-out-alt ms-1"></i>خروج
                         </a>
                     </li>
                 </ul>
@@ -72,22 +68,29 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container my-4">
+    <main class="container my-4 page-wrap">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="بستن"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="footer mt-auto py-3 bg-light">
+    <footer class="footer-app mt-auto py-3">
         <div class="container text-center">
-            <span class="text-muted">&copy; 2025 ExpenseMate - همه حقوق محفوظ است</span>
+            <span class="text-muted">&copy; 2026 ExpenseMate — همه حقوق محفوظ است</span>
         </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+</html>

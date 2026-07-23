@@ -15,7 +15,7 @@ from sqlalchemy import func
 from models.english_word import EnglishWord
 import pytz
 from utils.gemini_words import fetch_words_from_gemini
-from utils.slack_notifier import send_daily_words_to_slack
+from utils.telegram_notifier import send_telegram_notification, send_daily_words_to_telegram
 
 load_dotenv()
 
@@ -30,22 +30,6 @@ def convert_persian_to_gregorian(date_str):
     except (ValueError, TypeError) as e:
         print(f"Error converting date: {e}")
         return None
-
-SLACK_WEBHOOK_URL = os.getenv('SLACK-HOOK')
-
-def send_slack_notification(message):
-    try:
-        payload = {
-            "text": message
-        }
-        headers = {
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        response = requests.post(SLACK_WEBHOOK_URL, json=payload, headers=headers)
-        return response.status_code == 200
-    except Exception as e:
-        print(f"Error sending Slack notification: {str(e)}")
-        return False
 
 auth_bp = Blueprint('auth', __name__)  
 
@@ -206,8 +190,8 @@ def add_expense():
             formatted_monthly = "{:,.0f}".format(float(monthly_total))
             formatted_daily = "{:,.0f}".format(float(today_total))
             
-            slack_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}\n\n📊 خلاصه هزینه‌ها:\n📅 امروز: {formatted_daily} تومان\n📅 این ماه: {formatted_monthly} تومان"
-            send_slack_notification(slack_message)
+            telegram_message = f"🆕 هزینه جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}\n\n📊 خلاصه هزینه‌ها:\n📅 امروز: {formatted_daily} تومان\n📅 این ماه: {formatted_monthly} تومان"
+            send_telegram_notification(telegram_message)
 
             return jsonify({
                 "message": "expense added successfully!",
@@ -332,8 +316,8 @@ def add_income():
 
             persian_date = jdatetime.datetime.fromgregorian(datetime=income.date).strftime('%Y/%m/%d')
             formatted_amount = "{:,.0f}".format(float(amount))
-            slack_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
-            send_slack_notification(slack_message)
+            telegram_message = f"🆕 درآمد جدید ثبت شد:\n👤 کاربر: {current_user.username}\n💰 مبلغ: {formatted_amount} تومان\n📁 دسته‌بندی: {category.name}\n📝 توضیحات: {description or 'ندارد'}\n📅 تاریخ: {persian_date}"
+            send_telegram_notification(telegram_message)
 
             return jsonify({
                 "message": "income added successfully!",
@@ -1008,7 +992,7 @@ def get_job_listings():
                 job_data = response_data.get('data', {})
                 job_posts = job_data.get('jobPosts', [])
                 
-                slack_message = f"🔍 *نتایج جستجو برای \"{keyword}\"*\n\n"
+                telegram_message = f"🔍 نتایج جستجو برای \"{keyword}\"\n\n"
                 for job in job_posts:
                     location = job.get('location', {}).get('city', {}).get('titleFa', 'نامشخص')
                     experience = job.get('properties', {}).get('requiredRelatedExperienceYears', 'نامشخص')
@@ -1016,17 +1000,17 @@ def get_job_listings():
                     isUrgent = '🔥' if job.get('properties', {}).get('isUrgent') else ''
                     activation_date = job.get('activationTime', {}).get('date', 'نامشخص')
                     
-                    slack_message += f"*{isUrgent} {job.get('title', 'نامشخص')}*\n"
-                    slack_message += f"🏢 شرکت: {job.get('company', {}).get('nameFa', 'نامشخص')}\n"
-                    slack_message += f"📍 محل کار: {location}\n"
-                    slack_message += f"💼 نوع همکاری: {job.get('workType', {}).get('titleFa', 'نامشخص')}\n"
-                    slack_message += f"⏳ سابقه کار: {experience} سال\n"
-                    slack_message += f"🏠 دورکاری: {isRemote}\n"
-                    slack_message += f"📅 تاریخ انتشار: {activation_date}\n"
-                    slack_message += f"🔗 لینک: https://jobvision.ir{job.get('company', {}).get('pageUrl', '')}\n"
-                    slack_message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    telegram_message += f"{isUrgent} {job.get('title', 'نامشخص')}\n"
+                    telegram_message += f"🏢 شرکت: {job.get('company', {}).get('nameFa', 'نامشخص')}\n"
+                    telegram_message += f"📍 محل کار: {location}\n"
+                    telegram_message += f"💼 نوع همکاری: {job.get('workType', {}).get('titleFa', 'نامشخص')}\n"
+                    telegram_message += f"⏳ سابقه کار: {experience} سال\n"
+                    telegram_message += f"🏠 دورکاری: {isRemote}\n"
+                    telegram_message += f"📅 تاریخ انتشار: {activation_date}\n"
+                    telegram_message += f"🔗 لینک: https://jobvision.ir{job.get('company', {}).get('pageUrl', '')}\n"
+                    telegram_message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 
-                send_slack_notification(slack_message)
+                send_telegram_notification(telegram_message)
                 
                 formatted_jobs = [{
                     'title': job.get('title', 'نامشخص'),
@@ -1107,8 +1091,8 @@ def generate_daily_words():
         
         db.session.commit()
         
-        # Send words to Slack
-        send_daily_words_to_slack(words)
+        # Send words to Telegram
+        send_daily_words_to_telegram(words)
         
         return jsonify({
             'success': True,
@@ -1141,7 +1125,6 @@ def get_words_by_date():
         words = EnglishWord.query.filter(
             func.date(EnglishWord.created_at) == date_obj
         ).all()
-        send_daily_words_to_slack(words)
 
         if not words:
             return jsonify({
@@ -1217,6 +1200,10 @@ def add_telegram_user():
     last_name = data.get('last_name')
     if not user_id:
         return jsonify({'success': False, 'message': 'user_id is required'}), 400
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'message': 'user_id must be a number'}), 400
     user = db.session.query(TelegramUser).filter_by(user_id=user_id).first()
     if user:
         return jsonify({'success': False, 'message': 'User already exists'}), 400
