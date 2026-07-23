@@ -1,32 +1,32 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ExpenseMate</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <section class="landing-hero">
         <h1>ExpenseMate</h1>
-        <p>مدیریت هوشمند هزینه و درآمد، همراه با یادگیری روزانه انگلیسی</p>
+        <p>Smart expense and income tracking, with daily English vocabulary.</p>
         <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4">
-            <i class="fas fa-sign-in-alt ms-1"></i>شروع کنید
+            <i class="fas fa-sign-in-alt me-1"></i>Get started
         </a>
     </section>
 
     <section class="feature-grid">
         <a href="{{ url_for('auth.login') }}" class="feature-link expense">
             <div class="mb-3"><i class="fas fa-wallet fa-2x"></i></div>
-            <h3>مدیریت مالی</h3>
-            <p>ثبت هزینه و درآمد، گزارش‌گیری و تحلیل ماهانه در یک داشبورد ساده.</p>
+            <h3>Finance</h3>
+            <p>Track expenses and income, and review monthly reports in one dashboard.</p>
         </a>
         <a href="{{ url_for('auth.login') }}" class="feature-link english">
             <div class="mb-3"><i class="fas fa-language fa-2x"></i></div>
-            <h3>یادگیری انگلیسی</h3>
-            <p>هر روز چند واژه جدید دریافت کنید و نوتیف را در تلگرام ببینید.</p>
+            <h3>English learning</h3>
+            <p>Get a few new words every day, with optional Telegram notifications.</p>
         </a>
     </section>
 </body>

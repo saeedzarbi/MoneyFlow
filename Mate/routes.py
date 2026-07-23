@@ -1,7 +1,8 @@
 from flask import  redirect, url_for, flash, Blueprint
 from models.extensions import bcrypt, db
 from flask_login import login_user, logout_user, login_required, current_user
-from forms import LoginForm, RegistrationForm
+from forms import LoginForm
+
 from flask import render_template, request, jsonify
 from models.mate import Expense, Category, User, IncomeCategory, Income
 from models.telegram_bot import TelegramUser
@@ -50,43 +51,18 @@ def login():
             login_user(user, remember=True) 
             return redirect(url_for('auth.dashboard'))
         else:
-            flash('login failed, please check your email and password', 'danger')
+            flash('Login failed. Please check your email and password.', 'danger')
     return render_template('login.html', form=form)
 
 @auth_bp.route('register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('auth.dashboard'))
-    
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        # Check if user already exists
-        if User.query.filter_by(email=form.email.data).first():
-            flash('email already exists', 'danger')
-            return render_template('register.html', form=form)
-        
-        if User.query.filter_by(username=form.username.data).first():
-            flash('username already exists', 'danger')
-            return render_template('register.html', form=form)
-        
-        # Create new user
-        user = User(
-            username=form.username.data,
-            email=form.email.data
-        )
-        # user.set_password(form.password.data)
-        # db.session.add(user)
-        # db.session.commit()
-        
-        flash('registration successful, please login', 'success')
-        return redirect(url_for('auth.login'))
-    
-    return render_template('register.html', form=form)
+    flash('Public registration is disabled. Contact an administrator.', 'warning')
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('logout')
 def logout():
     logout_user()
-    return redirect(url_for('auth.login'))  
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('/dashboard')
 @login_required

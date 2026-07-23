@@ -44,7 +44,8 @@ def create_app():
     login_manager.init_app(app)
 
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'please-login'
+    login_manager.login_message = 'Please sign in to continue.'
+    login_manager.login_message_category = 'warning'
 
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(english_bp, url_prefix='/')

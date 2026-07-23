@@ -4,16 +4,16 @@ from wtforms import StringField, FloatField, SelectField, TextAreaField, SubmitF
 from persiantools.jdatetime import JalaliDate
 
 class LoginForm(FlaskForm):
-    email = StringField('ایمیل', validators=[DataRequired(), Email()])
-    password = PasswordField('رمز عبور', validators=[DataRequired()])
-    submit = SubmitField('ورود')
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Sign in')
 
 class RegistrationForm(FlaskForm):
-    username = StringField('نام کاربری', validators=[DataRequired(), Length(min=3, max=150)])
-    email = StringField('ایمیل', validators=[DataRequired(), Email()])
-    password = PasswordField('رمز عبور', validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField('تکرار رمز عبور', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('ثبت‌نام')
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=150)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Register')
 
 class ExpenseForm(FlaskForm):
     amount = FloatField('مبلغ', validators=[DataRequired()])
